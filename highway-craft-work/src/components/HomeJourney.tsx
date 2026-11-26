@@ -14,10 +14,28 @@ interface Props {
   scenarios: { id: string; title: string; subtitle: string }[];
   onNavigate: (s: Section) => void;
   onLaunch: (id: string) => void;
+  signedIn?: boolean;
 }
 
-export function HomeJourney({ progress, scenarios, onNavigate, onLaunch }: Props) {
+export function HomeJourney({ progress, scenarios, onNavigate, onLaunch, signedIn = false }: Props) {
   const completed = [progress.theoryPassed, progress.hazardBestScore !== null, progress.practicalPasses > 0].filter(Boolean).length;
+  const nextSection: Section =
+    progress.theoryBestPercent === null || !progress.theoryPassed
+      ? 'theory'
+      : progress.hazardBestScore === null ||
+          progress.hazardBestScore < Math.round(progress.hazardMaxScore * 0.7)
+        ? 'hazard'
+        : progress.practicalPasses === 0
+          ? 'practical'
+          : 'smtm';
+  const nextLesson =
+    nextSection === 'theory'
+      ? 'Build your theory score with a short topic quiz.'
+      : nextSection === 'hazard'
+        ? 'Practise spotting developing hazards earlier in the road scene.'
+        : nextSection === 'practical'
+          ? 'Take a guided drive and work on observation and positioning.'
+          : 'Refresh your vehicle safety checks before your next drive.';
   const modules = [
     { key: 'theory' as const, title: 'Theory practice', subtitle: 'Road rules, signs and mock tests', icon: BookOpenCheck, value: progress.theoryBestPercent === null ? 'Not started' : `${progress.theoryBestPercent}% best score`, tint: 'blue' },
     { key: 'hazard' as const, title: 'Hazard perception', subtitle: 'Developing hazards in 3D road scenes', icon: Eye, value: progress.hazardBestScore === null ? '10 training clips' : `${progress.hazardBestScore}/${progress.hazardMaxScore} best score`, tint: 'amber' },
@@ -45,7 +63,7 @@ export function HomeJourney({ progress, scenarios, onNavigate, onLaunch }: Props
               Prepare for the UK car theory and practical tests with focused lessons, realistic hazard training and guided 3D driving scenarios.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <button type="button" onClick={() => onNavigate(progress.hazardBestScore === null ? 'hazard' : 'theory')} className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-950/20 hover:bg-emerald-400">
+              <button type="button" onClick={() => onNavigate(nextSection)} className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-950/20 hover:bg-emerald-400">
                 Continue learning <ArrowRight className="h-4 w-4" />
               </button>
               <button type="button" onClick={() => onNavigate('practical')} className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white hover:bg-white/15">
@@ -75,7 +93,7 @@ export function HomeJourney({ progress, scenarios, onNavigate, onLaunch }: Props
       <section>
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div><p className="text-xs font-bold uppercase tracking-[.16em] text-blue-700">Learning dashboard</p><h2 className="mt-1 text-2xl text-slate-900">Choose your next lesson</h2><p className="mt-1 text-sm text-slate-500">Build knowledge step by step, then apply it on the road.</p></div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Progress saved on this device</span>
+          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> {signedIn ? 'Progress synced to your account' : 'Progress saved on this device'}</span>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {modules.map((module) => {
@@ -88,12 +106,34 @@ export function HomeJourney({ progress, scenarios, onNavigate, onLaunch }: Props
         </div>
       </section>
 
+      <section className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div><p className="text-xs font-bold uppercase tracking-[.14em] text-emerald-800">Recommended next step</p><h2 className="mt-1 text-xl font-bold text-slate-900">{nextSection === 'theory' ? 'Strengthen your theory knowledge' : nextSection === 'hazard' ? 'Improve your hazard timing' : nextSection === 'practical' ? 'Build confidence behind the wheel' : 'Refresh your vehicle safety knowledge'}</h2><p className="mt-1 text-sm text-slate-600">{nextLesson}</p></div>
+          <button type="button" onClick={() => onNavigate(nextSection)} className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-800">Start next lesson <ArrowRight className="h-4 w-4" /></button>
+        </div>
+      </section>
+
+      <section className="grid gap-3 md:grid-cols-2">
+        <a href="https://www.gov.uk/theory-test/multiple-choice-questions" target="_blank" rel="noreferrer" className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-300 hover:shadow-md">
+          <p className="text-xs font-bold uppercase tracking-[.14em] text-blue-700">Official car theory format</p>
+          <h3 className="mt-2 text-lg font-bold text-slate-900">50 questions · 57 minutes</h3>
+          <p className="mt-1 text-sm text-slate-500">You need 43 correct answers to pass. Open the GOV.UK guide for the current test format.</p>
+          <span className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-blue-700">Read official guidance <ArrowRight className="h-3.5 w-3.5" /></span>
+        </a>
+        <a href="https://www.gov.uk/theory-test/hazard-perception-test" target="_blank" rel="noreferrer" className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-amber-300 hover:shadow-md">
+          <p className="text-xs font-bold uppercase tracking-[.14em] text-amber-700">Official hazard format</p>
+          <h3 className="mt-2 text-lg font-bold text-slate-900">14 clips · 15 developing hazards</h3>
+          <p className="mt-1 text-sm text-slate-500">The car test is marked out of 75, with 44 needed to pass. Highway Craft's 10 3D scenes are original practice exercises, not official DVSA clips.</p>
+          <span className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-amber-700">Read official guidance <ArrowRight className="h-3.5 w-3.5" /></span>
+        </a>
+      </section>
+
       <section className="grid gap-6 lg:grid-cols-[1.2fr_.8fr]">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-blue-700">Scenario library</p><h2 className="mt-1 text-xl font-bold text-slate-900">Take the wheel</h2></div><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">UK left-hand traffic</span></div>
           <p className="mt-2 text-sm text-slate-500">Choose a focused route to practise observations, positioning and vehicle control.</p>
           <div className="mt-5 grid gap-2 sm:grid-cols-2">
-            {scenarios.slice(0, 4).map((scenario, index) => <button key={scenario.id} type="button" onClick={() => onLaunch(scenario.id)} className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-left transition hover:border-blue-300 hover:bg-blue-50/50">
+            {scenarios.slice(0, 5).map((scenario, index) => <button key={scenario.id} type="button" onClick={() => onLaunch(scenario.id)} className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-left transition hover:border-blue-300 hover:bg-blue-50/50">
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-slate-100 text-sm font-bold text-slate-700">{String(index + 1).padStart(2, '0')}</span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-slate-800">{scenario.title}</span><span className="mt-0.5 block truncate text-xs text-slate-500">{scenario.subtitle}</span></span><ArrowRight className="h-4 w-4 shrink-0 text-slate-400" />
             </button>)}
           </div>
