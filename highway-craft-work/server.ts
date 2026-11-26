@@ -179,7 +179,7 @@ export async function createHighwayCraftServer(
   // Best-effort per-instance protection against accidental/public AI key abuse.
   app.use('/api/ai', (req, res, next) => {
     const forwarded = req.headers['x-forwarded-for'];
-    const ip = (typeof forwarded === 'string' ? forwarded.split(',')[0] : req.ip || 'unknown').trim();
+    const ip = (typeof forwarded === 'string' ? forwarded.split(',').pop() : req.ip || 'unknown').trim();
     const now = Date.now();
     const current = aiRateWindows.get(ip);
     if (!current || current.resetAt <= now) {
@@ -609,16 +609,32 @@ export async function createHighwayCraftServer(
 
   // Bidirectional Gemini Live API WebSocket bridge (/live)
   const wss = new WebSocketServer({ noServer: true });
+  const liveConnectionsByIp = new Map<string, number>();
 
   server.on('upgrade', (request, socket, head) => {
     const urlPath = new URL(request.url || '/', 'http://localhost').pathname;
-    if (urlPath === '/live' || urlPath === '/api/live') {
-      wss.handleUpgrade(request, socket, head, (ws) => {
-        wss.emit('connection', ws, request);
-      });
-    } else {
+    if (urlPath !== '/live' && urlPath !== '/api/live') {
       socket.destroy();
+      return;
     }
+    const forwarded = request.headers['x-forwarded-for'];
+    const ip = (typeof forwarded === 'string'
+      ? forwarded.split(',').pop()
+      : request.socket.remoteAddress || 'unknown')?.trim() || 'unknown';
+    if ((liveConnectionsByIp.get(ip) || 0) >= 2) {
+      socket.write('HTTP/1.1 429 Too Many Requests\\r\\nConnection: close\\r\\n\\r\\n');
+      socket.destroy();
+      return;
+    }
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      liveConnectionsByIp.set(ip, (liveConnectionsByIp.get(ip) || 0) + 1);
+      ws.once('close', () => {
+        const remaining = Math.max(0, (liveConnectionsByIp.get(ip) || 1) - 1);
+        if (remaining === 0) liveConnectionsByIp.delete(ip);
+        else liveConnectionsByIp.set(ip, remaining);
+      });
+      wss.emit('connection', ws, request);
+    });
   });
 
   wss.on('connection', async (clientWs: WebSocket, req) => {
