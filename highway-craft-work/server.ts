@@ -179,7 +179,7 @@ export async function createHighwayCraftServer(
   // Best-effort per-instance protection against accidental/public AI key abuse.
   app.use('/api/ai', (req, res, next) => {
     const forwarded = req.headers['x-forwarded-for'];
-    const ip = (typeof forwarded === 'string' ? forwarded.split(',').pop() : req.ip || 'unknown').trim();
+    const ip = ((typeof forwarded === 'string' ? forwarded.split(',').pop() : req.ip) || 'unknown').trim();
     const now = Date.now();
     const current = aiRateWindows.get(ip);
     if (!current || current.resetAt <= now) {
