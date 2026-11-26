@@ -100,6 +100,47 @@ function roundedBox(w: number, h: number, d: number, radius: number, material: T
   return mesh;
 }
 
+function cyclist() {
+  const group = new THREE.Group();
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0xe0a52b, roughness: .42, metalness: .22 });
+  const rubber = mat(0x111827, .92);
+  const rimMat = mat(0xcbd5e1, .32, .72);
+  const wheelAt = (z: number) => {
+    const tire = new THREE.Mesh(new THREE.TorusGeometry(.37, .045, 10, 28), rubber);
+    tire.rotation.y = Math.PI / 2; tire.position.set(0, .39, z); group.add(tire);
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(.045, .045, .12, 12), rimMat);
+    hub.rotation.z = Math.PI / 2; hub.position.set(0, .39, z); group.add(hub);
+    for (let i = 0; i < 8; i++) {
+      const a = i * Math.PI / 4;
+      const spoke = new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, .73, 5), rimMat);
+      spoke.position.set(0, .39, z);
+      spoke.rotation.x = a;
+      group.add(spoke);
+    }
+  };
+  wheelAt(-.72); wheelAt(.72);
+  const bar = (a: THREE.Vector3, b: THREE.Vector3, radius = .035) => {
+    const delta = new THREE.Vector3().subVectors(b, a);
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, delta.length(), 8), frameMat);
+    mesh.position.copy(a).add(b).multiplyScalar(.5);
+    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), delta.normalize());
+    group.add(mesh);
+  };
+  const rear = new THREE.Vector3(0, .39, .72), crank = new THREE.Vector3(0, .4, 0);
+  const seat = new THREE.Vector3(0, .88, .2), headTube = new THREE.Vector3(0, .83, -.5);
+  bar(rear, seat); bar(seat, crank); bar(crank, rear); bar(seat, headTube); bar(headTube, crank);
+  bar(headTube, new THREE.Vector3(0, 1.02, -.62), .028);
+  group.add(new THREE.Mesh(new THREE.BoxGeometry(.34, .045, .1), mat(0x202a35, .8)));
+  const handle = new THREE.Mesh(new THREE.CylinderGeometry(.025, .025, .48, 8), mat(0x202a35));
+  handle.rotation.z = Math.PI / 2; handle.position.set(0, 1.05, -.62); group.add(handle);
+  const rider = person(0x16a085, 1.62);
+  rider.position.set(0, .82, .02); rider.rotation.x = -.18; group.add(rider);
+  const helmet = new THREE.Mesh(new THREE.SphereGeometry(.19, 16, 12), mat(0xfbbf24, .38));
+  helmet.scale.set(1, .72, 1.05); helmet.position.set(0, 2.24, -.18); group.add(helmet);
+  group.traverse((o) => { if (o instanceof THREE.Mesh) { o.castShadow = true; o.receiveShadow = true; } });
+  return group;
+}
+
 function van(color: number, length = 5, beacon?: THREE.MeshStandardMaterial) {
   const g = new THREE.Group();
   const paint = new THREE.MeshPhysicalMaterial({ color, roughness: .28, metalness: .24, clearcoat: .8, clearcoatRoughness: .18 });
@@ -454,12 +495,18 @@ export function createHazardScene(canvas: HTMLCanvasElement, sc: HazardScenario)
     hinge.add(box(0.07, 0.8, 1.05, mat(0x7c3aed, 0.3, 0.4), 0, 0, 0.55));
     car.group.add(hinge);
     const dr = person(0x0ea5e9);
-    scene.add(dr);
+    const rider = cyclist();
+    scene.add(dr, rider);
     hazardUpdate = (t) => {
       const p = ease(ramp(t, T0, T0 + 1.2));
+      const swerve = ease(ramp(t, T0 + .8, T0 + 2.3));
       hinge.rotation.y = p * 1.15;
       dr.position.set(-3.5 + p * 0.1, 0, hz - 0.6);
       dr.visible = p > 0.3;
+      rider.position.set(-1.8 + swerve * 1.0, 0, hz + 3.2 - ramp(t, T0, T0 + 3.5) * 5.2);
+      rider.rotation.y = -swerve * .22;
+      rider.rotation.z = swerve * -.08;
+      rider.visible = t > T0 - .6;
     };
   } else if (theme === 'roadworks-merge') {
     const cone = new THREE.ConeGeometry(0.22, 0.7, 14);
