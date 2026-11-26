@@ -117,23 +117,16 @@ export default function App() {
           setAuthLoading(false);
           if (!nextUser) return;
 
-          try {
-            const token = await nextUser.getIdToken();
-            const res = await fetch('/api/progress/summary', {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            if (res.ok) {
-              const payload = (await res.json()) as { summary?: Partial<ProgressState> };
-              if (payload.summary) mergeCloudSummary(payload.summary);
+          const cloudProgress = await firebase.getUserProgressFromFirestore(nextUser);
+          if (cloudProgress) {
+            mergeCloudSummary(cloudProgress);
+          } else {
+            // First sign-in: create the profile from this browser's existing local progress.
+            try {
+              await firebase.syncUserProfileToFirestore(nextUser, progress);
+            } catch (err) {
+              console.error('Firestore profile sync skipped:', err);
             }
-          } catch {
-            // Keep local progress available when the API is offline.
-          }
-
-          try {
-            await firebase.syncUserProfileToFirestore(nextUser, progress);
-          } catch (err) {
-            console.error('Firestore profile sync skipped:', err);
           }
         });
       }
@@ -168,24 +161,6 @@ export default function App() {
       const firebase = await import('./lib/firebase');
       const current = firebase.auth.currentUser;
       if (!current) return;
-
-      try {
-        const token = await current.getIdToken();
-        const res = await fetch('/api/progress/attempt', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(attempt),
-        });
-        if (res.ok) {
-          const payload = (await res.json()) as { summary?: Partial<ProgressState> };
-          if (payload.summary) mergeCloudSummary(payload.summary);
-        }
-      } catch {
-        // non-blocking Cloud SQL sync
-      }
 
       try {
         await Promise.all([
