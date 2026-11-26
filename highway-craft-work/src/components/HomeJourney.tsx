@@ -1,5 +1,4 @@
-import { BookOpenCheck, Car, Check, Eye, MapPin, Mic, ShieldCheck, Star } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { ArrowRight, BookOpenCheck, CarFront, CheckCircle2, Eye, Gauge, MapPin, Mic, ShieldCheck, Sparkles, Target } from 'lucide-react';
 
 type Section = 'theory' | 'hazard' | 'smtm' | 'maps' | 'ai' | 'practical';
 
@@ -17,196 +16,98 @@ interface Props {
   onLaunch: (id: string) => void;
 }
 
-/** Tiny top-down learner car used as the player token on the road. */
-function CarToken() {
-  return (
-    <svg width="46" height="76" viewBox="0 0 46 76" aria-hidden className="drop-shadow-md anim-pop">
-      <rect x="3" y="14" width="8" height="16" rx="3" fill="#111827" />
-      <rect x="35" y="14" width="8" height="16" rx="3" fill="#111827" />
-      <rect x="3" y="48" width="8" height="16" rx="3" fill="#111827" />
-      <rect x="35" y="48" width="8" height="16" rx="3" fill="#111827" />
-      <rect x="6" y="3" width="34" height="70" rx="14" fill="#1cb0f6" />
-      <rect x="6" y="3" width="34" height="70" rx="14" fill="none" stroke="#1899d6" strokeWidth="2" />
-      <rect x="11" y="20" width="24" height="12" rx="4" fill="#1e293b" />
-      <rect x="11" y="46" width="24" height="9" rx="4" fill="#1e293b" />
-      <rect x="13" y="33" width="20" height="12" rx="3" fill="#7dd3fc" />
-      <rect x="18" y="35" width="10" height="8" rx="2" fill="#fff" />
-      <text x="23" y="42" textAnchor="middle" fontSize="8" fontWeight="900" fill="#ef4444">L</text>
-      <circle cx="12" cy="6" r="2.5" fill="#fde68a" />
-      <circle cx="34" cy="6" r="2.5" fill="#fde68a" />
-    </svg>
-  );
-}
-
 export function HomeJourney({ progress, scenarios, onNavigate, onLaunch }: Props) {
-  const done = {
-    theory: progress.theoryPassed,
-    hazard: progress.hazardBestScore !== null,
-    smtm: false,
-    practical: progress.practicalPasses > 0,
-  };
-  const hazardPct = progress.hazardBestScore !== null ? progress.hazardBestScore / Math.max(1, progress.hazardMaxScore) : 0;
-  const xp = Math.round(
-    (progress.theoryBestPercent ?? 0) * 3 + hazardPct * 150 + Math.min(progress.practicalPasses, 5) * 60 + progress.practicalRuns * 10
-  );
-  const level = Math.floor(xp / 200) + 1;
-  const levelPct = ((xp % 200) / 200) * 100;
-
-  type Node = { key: Section; label: string; sub: string; icon: ReactNode; color: string; deep: string; done: boolean; x: number };
-  const nodes: Node[] = [
-    { key: 'theory', label: 'Theory test', sub: progress.theoryBestPercent !== null ? `Best ${progress.theoryBestPercent}%` : '50 questions', icon: <BookOpenCheck className="w-8 h-8" />, color: '#58cc02', deep: '#46a302', done: done.theory, x: 0 },
-    { key: 'hazard', label: 'Hazard perception', sub: progress.hazardBestScore !== null ? `${progress.hazardBestScore}/${progress.hazardMaxScore}` : '3D clips', icon: <Eye className="w-8 h-8" />, color: '#ff9600', deep: '#d97e00', done: done.hazard, x: 70 },
-    { key: 'smtm', label: 'Show me, tell me', sub: 'Vehicle checks', icon: <ShieldCheck className="w-8 h-8" />, color: '#ce82ff', deep: '#a560d6', done: done.smtm, x: -10 },
-    { key: 'practical', label: '3D practical drive', sub: `${progress.practicalPasses} passed`, icon: <Car className="w-8 h-8" />, color: '#1cb0f6', deep: '#1899d6', done: done.practical, x: 60 },
+  const completed = [progress.theoryPassed, progress.hazardBestScore !== null, progress.practicalPasses > 0].filter(Boolean).length;
+  const modules = [
+    { key: 'theory' as const, title: 'Theory practice', subtitle: 'Road rules, signs and mock tests', icon: BookOpenCheck, value: progress.theoryBestPercent === null ? 'Not started' : `${progress.theoryBestPercent}% best score`, tint: 'blue' },
+    { key: 'hazard' as const, title: 'Hazard perception', subtitle: 'Developing hazards in 3D road scenes', icon: Eye, value: progress.hazardBestScore === null ? '10 training clips' : `${progress.hazardBestScore}/${progress.hazardMaxScore} best score`, tint: 'amber' },
+    { key: 'smtm' as const, title: 'Show me, tell me', subtitle: 'Vehicle safety checks and explanations', icon: ShieldCheck, value: 'Practical knowledge', tint: 'violet' },
+    { key: 'practical' as const, title: '3D practical drive', subtitle: 'Manoeuvres, junctions and road positioning', icon: CarFront, value: `${progress.practicalPasses} passes · ${progress.practicalRuns} attempts`, tint: 'green' },
   ];
-  const currentIdx = nodes.findIndex((n) => !n.done);
-  const current = currentIdx === -1 ? 3 : currentIdx;
-
+  const tint: Record<string, string> = {
+    blue: 'bg-blue-50 text-blue-700 ring-blue-100',
+    amber: 'bg-amber-50 text-amber-700 ring-amber-100',
+    violet: 'bg-violet-50 text-violet-700 ring-violet-100',
+    green: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
+  };
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 grid lg:grid-cols-12 gap-8">
-      {/* Left: progress header + winding road */}
-      <section className="lg:col-span-7 space-y-6">
-        <div className="duo-card space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-widest text-[#1899d6] font-black">Highway Craft UK</p>
-              <h1 className="text-3xl sm:text-4xl leading-tight text-balance">Learn to drive, one level at a time.</h1>
+    <div className="mx-auto max-w-7xl space-y-8 px-4 py-7 sm:px-6 lg:px-8">
+      <section className="relative overflow-hidden rounded-3xl bg-[#10283d] px-6 py-8 text-white shadow-xl sm:px-9 sm:py-10">
+        <div aria-hidden className="pointer-events-none absolute -right-16 -top-24 h-80 w-80 rounded-full border-[38px] border-white/5" />
+        <div aria-hidden className="pointer-events-none absolute -bottom-28 right-40 h-72 w-72 rounded-full border-[28px] border-emerald-300/10" />
+        <div className="relative grid gap-8 lg:grid-cols-[1.35fr_.65fr] lg:items-center">
+          <div className="max-w-2xl">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold tracking-wide text-emerald-100">
+              <Sparkles className="h-3.5 w-3.5" /> YOUR UK DRIVING ACADEMY
             </div>
-            <div className="shrink-0 text-center">
-              <div className="w-16 h-16 rounded-full bg-[#ffc800] shadow-[0_4px_0_#d9a900] grid place-items-center anim-wiggle">
-                <Star className="w-8 h-8 text-white fill-white" />
+            <h1 className="max-w-xl text-3xl leading-tight sm:text-5xl">Build the skills to drive with confidence.</h1>
+            <p className="mt-4 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">
+              Prepare for the UK car theory and practical tests with focused lessons, realistic hazard training and guided 3D driving scenarios.
+            </p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <button type="button" onClick={() => onNavigate(progress.hazardBestScore === null ? 'hazard' : 'theory')} className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-950/20 hover:bg-emerald-400">
+                Continue learning <ArrowRight className="h-4 w-4" />
+              </button>
+              <button type="button" onClick={() => onNavigate('practical')} className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white hover:bg-white/15">
+                <CarFront className="h-4 w-4" /> Open 3D drive
+              </button>
+            </div>
+          </div>
+          <div className="relative rounded-2xl border border-white/15 bg-white/[.07] p-5 backdrop-blur-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-300">Your progress</p>
+                <p className="mt-1 text-3xl font-bold">{completed}<span className="text-lg font-medium text-slate-400"> / 3</span></p>
+                <p className="mt-1 text-xs text-slate-300">Core learning milestones started</p>
               </div>
-              <p className="text-xs font-black mt-2 text-[#d9a900]">LEVEL {level}</p>
+              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-400/15 text-emerald-300"><Target className="h-6 w-6" /></div>
+            </div>
+            <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-emerald-400 transition-all" style={{ width: `${completed / 3 * 100}%` }} /></div>
+            <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+              <div className="rounded-xl bg-black/10 px-2 py-3"><p className="text-lg font-bold">{progress.theoryBestPercent === null ? '—' : `${progress.theoryBestPercent}%`}</p><p className="mt-1 text-[10px] uppercase tracking-wide text-slate-400">Theory</p></div>
+              <div className="rounded-xl bg-black/10 px-2 py-3"><p className="text-lg font-bold">{progress.hazardBestScore === null ? '—' : progress.hazardBestScore}</p><p className="mt-1 text-[10px] uppercase tracking-wide text-slate-400">Hazards</p></div>
+              <div className="rounded-xl bg-black/10 px-2 py-3"><p className="text-lg font-bold">{progress.practicalPasses}</p><p className="mt-1 text-[10px] uppercase tracking-wide text-slate-400">Passes</p></div>
             </div>
           </div>
-          <div>
-            <div className="flex justify-between text-xs font-black text-slate-500 mb-1.5">
-              <span>{xp} XP</span>
-              <span>{200 - (xp % 200)} to next level</span>
-            </div>
-            <div className="duo-progress"><i style={{ width: `${Math.max(4, levelPct)}%` }} /></div>
-          </div>
-          <button type="button" className="duo-btn w-full justify-center" onClick={() => onNavigate(nodes[current].key)}>
-            {xp === 0 ? 'Start your first lesson' : `Continue: ${nodes[current].label}`}
-          </button>
-        </div>
-
-        {/* The road: a dark strip with a dashed yellow centre line runs behind the lesson nodes */}
-        <div className="relative rounded-[28px] overflow-hidden bg-[#e8f7d4] border-2 border-[#d5ecb8] px-4 py-8">
-          <div aria-hidden className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-24 bg-[#2b3550]" />
-          <div
-            aria-hidden
-            className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-1.5"
-            style={{ background: 'repeating-linear-gradient(#ffc800 0 18px, transparent 18px 38px)' }}
-          />
-          <ol className="relative space-y-10">
-            {nodes.map((n, i) => (
-              <li key={n.key} className="flex justify-center" style={{ transform: `translateX(${n.x}px)` }}>
-                <div className="relative flex flex-col items-center">
-                  {i === current && (
-                    <div className="absolute -top-9 anim-pop bg-white border-2 border-[#e5e5e5] rounded-xl px-3 py-1 text-xs font-black text-[#46a302] shadow-[0_3px_0_#e5e5e5] whitespace-nowrap">
-                      START
-                      <span className="absolute left-1/2 -bottom-1.5 w-3 h-3 -translate-x-1/2 rotate-45 bg-white border-r-2 border-b-2 border-[#e5e5e5]" />
-                    </div>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => onNavigate(n.key)}
-                    aria-label={n.label}
-                    className={`w-[88px] h-[88px] !rounded-full grid place-items-center text-white ${i === current ? 'anim-beacon' : ''}`}
-                    style={{
-                      background: n.done ? '#ffc800' : n.color,
-                      boxShadow: `0 8px 0 ${n.done ? '#d9a900' : n.deep}`,
-                      animationName: i === current ? 'beacon' : undefined,
-                    }}
-                  >
-                    {n.done ? <Check className="w-10 h-10" strokeWidth={4} /> : n.icon}
-                  </button>
-                  <p className="mt-4 text-sm font-black text-slate-800 bg-white/90 rounded-lg px-2 py-0.5">{n.label}</p>
-                  <p className="text-xs font-bold text-slate-500 bg-white/90 rounded-md px-1.5 mt-0.5">{n.sub}</p>
-                  {i === current && (
-                    <div className="absolute -left-24 top-2 hidden sm:block">
-                      <CarToken />
-                    </div>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <button type="button" onClick={() => onNavigate('maps')} className="duo-btn ghost justify-center normal-case tracking-normal">
-            <MapPin className="w-4 h-4" /> UK maps
-          </button>
-          <button type="button" onClick={() => onNavigate('ai')} className="duo-btn ghost justify-center normal-case tracking-normal">
-            <Mic className="w-4 h-4" /> Live voice coach
-          </button>
         </div>
       </section>
 
-      {/* Right: driving missions */}
-      <aside className="lg:col-span-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl">Driving missions</h2>
-          <span className="text-xs font-black text-slate-500 bg-white border-2 border-[#e5e5e5] rounded-full px-3 py-1">Left-hand traffic</span>
+      <section>
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div><p className="text-xs font-bold uppercase tracking-[.16em] text-blue-700">Learning dashboard</p><h2 className="mt-1 text-2xl text-slate-900">Choose your next lesson</h2><p className="mt-1 text-sm text-slate-500">Build knowledge step by step, then apply it on the road.</p></div>
+          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Progress saved on this device</span>
         </div>
-        {scenarios.map((sc, i) => {
-          const [num, ...rest] = sc.title.split('. ');
-          const palette = ['#58cc02', '#1cb0f6', '#ff9600', '#ce82ff', '#ff4b4b'][i % 5];
-          return (
-            <button
-              key={sc.id}
-              type="button"
-              onClick={() => onLaunch(sc.id)}
-              className="duo-card w-full text-left flex items-center gap-4 !p-4 hover:-translate-y-0.5 transition-transform"
-            >
-              <span className="w-12 h-12 shrink-0 rounded-2xl grid place-items-center text-white text-xl font-black" style={{ background: palette, boxShadow: `0 4px 0 ${palette}99` }}>
-                {num}
-              </span>
-              <span className="min-w-0">
-                <span className="block font-black text-slate-800">{rest.join('. ') || sc.title}</span>
-                <span className="block text-xs font-bold text-slate-500 leading-snug mt-0.5">{sc.subtitle}</span>
-              </span>
-            </button>
-          );
-        })}
-      </aside>
-
-      <section className="lg:col-span-12 space-y-4" aria-labelledby="exam-format-heading">
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
-          <div>
-            <p className="text-xs font-black uppercase tracking-widest text-[#1899d6]">Know the real test</p>
-            <h2 id="exam-format-heading" className="text-2xl">UK car test: official pass benchmarks</h2>
-          </div>
-          <p className="text-xs text-slate-500">Practice tools are independent and are not an official DVSA product.</p>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {modules.map((module) => {
+            const Icon = module.icon;
+            return <button key={module.key} type="button" onClick={() => onNavigate(module.key)} className="group rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:border-slate-300 hover:shadow-lg">
+              <div className="flex items-start justify-between"><span className={`grid h-11 w-11 place-items-center rounded-xl ring-1 ${tint[module.tint]}`}><Icon className="h-5 w-5" /></span><ArrowRight className="h-4 w-4 text-slate-300 transition group-hover:translate-x-1 group-hover:text-slate-600" /></div>
+              <h3 className="mt-5 text-base font-bold text-slate-900">{module.title}</h3><p className="mt-1 min-h-10 text-sm leading-5 text-slate-500">{module.subtitle}</p><p className="mt-4 border-t border-slate-100 pt-3 text-xs font-semibold text-slate-600">{module.value}</p>
+            </button>;
+          })}
         </div>
-        <div className="grid md:grid-cols-3 gap-4">
-          <article className="duo-card space-y-2">
-            <p className="text-xs font-black uppercase tracking-wide text-[#46a302]">Theory · multiple choice</p>
-            <p className="text-3xl font-black text-slate-900">43 / 50</p>
-            <p className="text-sm text-slate-600">Pass mark · 57 minutes to answer 50 questions.</p>
-            <button type="button" onClick={() => onNavigate('theory')} className="duo-btn ghost !px-3 !py-2 text-xs">Practise theory</button>
-          </article>
-          <article className="duo-card space-y-2">
-            <p className="text-xs font-black uppercase tracking-wide text-[#d97e00]">Theory · hazard perception</p>
-            <p className="text-3xl font-black text-slate-900">44 / 75</p>
-            <p className="text-sm text-slate-600">Pass mark · 14 clips with 15 developing hazards.</p>
-            <button type="button" onClick={() => onNavigate('hazard')} className="duo-btn ghost !px-3 !py-2 text-xs">Practise hazards</button>
-          </article>
-          <article className="duo-card space-y-2">
-            <p className="text-xs font-black uppercase tracking-wide text-[#1899d6]">Practical driving test</p>
-            <p className="text-3xl font-black text-slate-900">15 max</p>
-            <p className="text-sm text-slate-600">Around 35 minutes · up to 15 driving faults · no serious or dangerous faults.</p>
-            <button type="button" onClick={() => onLaunch('mock-route')} className="duo-btn ghost !px-3 !py-2 text-xs">Start a mock drive</button>
-          </article>
-        </div>
-        <p className="text-xs text-slate-500">
-          Official guidance: <a className="font-bold underline" href="https://www.gov.uk/theory-test/pass-mark-and-result" target="_blank" rel="noreferrer">theory pass marks</a>,{' '}
-          <a className="font-bold underline" href="https://www.gov.uk/theory-test/hazard-perception-test" target="_blank" rel="noreferrer">hazard perception format</a>, and{' '}
-          <a className="font-bold underline" href="https://www.gov.uk/driving-test/driving-test-faults-result" target="_blank" rel="noreferrer">practical test faults</a>.
-        </p>
       </section>
+
+      <section className="grid gap-6 lg:grid-cols-[1.2fr_.8fr]">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-blue-700">Scenario library</p><h2 className="mt-1 text-xl font-bold text-slate-900">Take the wheel</h2></div><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">UK left-hand traffic</span></div>
+          <p className="mt-2 text-sm text-slate-500">Choose a focused route to practise observations, positioning and vehicle control.</p>
+          <div className="mt-5 grid gap-2 sm:grid-cols-2">
+            {scenarios.slice(0, 4).map((scenario, index) => <button key={scenario.id} type="button" onClick={() => onLaunch(scenario.id)} className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-left transition hover:border-blue-300 hover:bg-blue-50/50">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-slate-100 text-sm font-bold text-slate-700">{String(index + 1).padStart(2, '0')}</span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-slate-800">{scenario.title}</span><span className="mt-0.5 block truncate text-xs text-slate-500">{scenario.subtitle}</span></span><ArrowRight className="h-4 w-4 shrink-0 text-slate-400" />
+            </button>)}
+          </div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <p className="text-xs font-bold uppercase tracking-[.14em] text-blue-700">Extra tools</p><h2 className="mt-1 text-xl font-bold text-slate-900">Train beyond the test</h2><p className="mt-2 text-sm leading-6 text-slate-500">Explore test-centre information and get help understanding tricky driving situations.</p>
+          <div className="mt-5 space-y-2">
+            <button type="button" onClick={() => onNavigate('maps')} className="flex w-full items-center gap-3 rounded-xl border border-slate-200 p-3 text-left hover:bg-slate-50"><span className="grid h-10 w-10 place-items-center rounded-lg bg-sky-50 text-sky-700"><MapPin className="h-5 w-5" /></span><span className="flex-1"><span className="block text-sm font-semibold text-slate-800">UK test-centre map</span><span className="text-xs text-slate-500">Explore centres and local information</span></span><ArrowRight className="h-4 w-4 text-slate-400" /></button>
+            <button type="button" onClick={() => onNavigate('ai')} className="flex w-full items-center gap-3 rounded-xl border border-slate-200 p-3 text-left hover:bg-slate-50"><span className="grid h-10 w-10 place-items-center rounded-lg bg-violet-50 text-violet-700"><Mic className="h-5 w-5" /></span><span className="flex-1"><span className="block text-sm font-semibold text-slate-800">AI driving coach</span><span className="text-xs text-slate-500">Ask questions and review driving concepts</span></span><ArrowRight className="h-4 w-4 text-slate-400" /></button>
+            <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3"><span className="grid h-10 w-10 place-items-center rounded-lg bg-amber-50 text-amber-700"><Gauge className="h-5 w-5" /></span><span><span className="block text-sm font-semibold text-slate-800">Practical and theory preparation</span><span className="text-xs text-slate-500">Practice support, not a replacement for an instructor</span></span></div>
+          </div>
+        </div>
+      </section>
+      <p className="pb-2 text-center text-xs text-slate-400">Highway Craft is an independent learning aid and is not affiliated with or endorsed by DVSA.</p>
     </div>
   );
 }
