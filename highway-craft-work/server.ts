@@ -167,7 +167,10 @@ const ALLOWED_AUDIO_MIME_TYPES = new Set([
   'audio/mp4',
 ]);
 
-async function startServer() {
+export async function createHighwayCraftServer(
+  options: { serveFrontend?: boolean } = {}
+): Promise<http.Server> {
+  const serveFrontend = options.serveFrontend ?? process.env.VERCEL !== '1';
   const app = express();
   const standardJson = express.json({ limit: '64kb' });
   const audioJson = express.json({ limit: '12mb' });
@@ -567,20 +570,15 @@ async function startServer() {
     }
   });
 
-  // Frontend serving (Vite dev middleware or built static dist)
-  if (!IS_PROD) {
+  // Local development serves Vite; Vercel serves the built SPA separately.
+  if (serveFrontend && !IS_PROD) {
     const { createServer: createViteServer } = await import('vite');
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
+    const vite = await createViteServer({ server: { middlewareMode: true }, appType: 'spa' });
     app.use(vite.middlewares);
-  } else {
+  } else if (serveFrontend) {
     const distDir = path.resolve(__dirname, 'dist');
     app.use(express.static(distDir));
-    app.get('*', (_req, res) => {
-      res.sendFile(path.join(distDir, 'index.html'));
-    });
+    app.get('*', (_req, res) => res.sendFile(path.join(distDir, 'index.html')));
   }
 
   const server = http.createServer(app);
@@ -589,8 +587,8 @@ async function startServer() {
   const wss = new WebSocketServer({ noServer: true });
 
   server.on('upgrade', (request, socket, head) => {
-    const urlPath = (request.url || '').split('?')[0];
-    if (urlPath === '/live') {
+    const urlPath = new URL(request.url || '/', 'http://localhost').pathname;
+    if (urlPath === '/live' || urlPath === '/api/live') {
       wss.handleUpgrade(request, socket, head, (ws) => {
         wss.emit('connection', ws, request);
       });
@@ -764,12 +762,18 @@ async function startServer() {
     });
   });
 
-  server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Highway Craft UK server listening on http://localhost:${PORT}`);
-  });
+  return server;
 }
 
-startServer().catch((err) => {
-  console.error('Fatal server startup error:', err);
-  process.exit(1);
-});
+// The same application powers local development and the Vercel Functions entrypoint.
+// Never start a second listener when this module is imported by a serverless function.
+if (process.env.VERCEL !== '1') {
+  void createHighwayCraftServer().then((server) => {
+    server.listen(PORT, '0.0.0.0', () => {
+      console.log(`Highway Craft UK server listening on http://localhost:${PORT}`);
+    });
+  }).catch((err) => {
+    console.error('Fatal server startup error:', err);
+    process.exit(1);
+  });
+}
