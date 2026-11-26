@@ -37,6 +37,8 @@ import { soundEngine } from '../utils/soundEngine';
 
 import { PRACTICAL_SCENARIOS, type PracticalScenarioId } from '../data/practicalScenarios';
 
+export type CameraViewMode = 'chase' | 'cockpit' | 'overhead';
+
 // Pre-allocated scratch vectors outside render loop (zero GC)
 const _camDesired = new THREE.Vector3();
 const _lookDesired = new THREE.Vector3();
