@@ -40,37 +40,93 @@ function wheel(r: number, w: number, x: number, z: number) {
 }
 
 function person(shirt: number, height = 1.75) {
-  const s = height / 1.75;
+  const scale = height / 1.75;
   const g = new THREE.Group();
-  g.add(new THREE.Mesh(new THREE.CapsuleGeometry(0.2 * s, 0.55 * s, 6, 12), mat(shirt, 0.8)));
-  g.children[0].position.y = 1.15 * s;
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.13 * s, 16, 12), SKIN);
-  head.position.y = 1.68 * s;
+  const jacket = mat(shirt, 0.82);
+  const trousers = mat(0x26364a, 0.92);
+  const shoes = mat(0x111827, 0.95);
+  const hair = mat(0x29231f, 0.98);
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.205 * scale, 0.48 * scale, 8, 14), jacket);
+  torso.position.y = 1.13 * scale;
+  g.add(torso);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.132 * scale, 20, 16), SKIN);
+  head.position.y = 1.67 * scale;
   g.add(head);
+  const hairCap = new THREE.Mesh(new THREE.SphereGeometry(0.137 * scale, 16, 10, 0, Math.PI * 2, 0, Math.PI * .48), hair);
+  hairCap.position.y = 1.72 * scale;
+  g.add(hairCap);
   const legs: THREE.Mesh[] = [];
-  for (const x of [-0.09, 0.09]) {
-    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.08 * s, 0.55 * s, 4, 8), mat(0x1e3a5f));
-    leg.geometry.translate(0, -0.3 * s, 0); // pivot at the hip
-    leg.position.set(x * s, 0.85 * s, 0);
-    legs.push(leg);
-    g.add(leg);
+  const arms: THREE.Mesh[] = [];
+  for (const side of [-1, 1]) {
+    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.075 * scale, 0.48 * scale, 5, 10), trousers);
+    leg.geometry.translate(0, -0.25 * scale, 0);
+    leg.position.set(side * 0.095 * scale, 0.82 * scale, 0);
+    legs.push(leg); g.add(leg);
+    const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.13 * scale, 0.08 * scale, 0.24 * scale), shoes);
+    shoe.position.set(side * 0.095 * scale, 0.09 * scale, -0.045 * scale);
+    g.add(shoe);
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.065 * scale, 0.34 * scale, 5, 10), jacket);
+    arm.geometry.translate(0, -0.18 * scale, 0);
+    arm.position.set(side * 0.25 * scale, 1.32 * scale, 0);
+    arm.rotation.z = side * -0.14;
+    arms.push(arm); g.add(arm);
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.055 * scale, 10, 8), SKIN);
+    hand.position.set(side * 0.27 * scale, 0.96 * scale, 0);
+    g.add(hand);
   }
-  g.traverse((o) => (o.castShadow = true));
+  g.traverse((o) => { if (o instanceof THREE.Mesh) { o.castShadow = true; o.receiveShadow = true; } });
   g.userData.walk = (t: number, amount = 1) => {
-    legs[0].rotation.x = Math.sin(t * 9) * 0.7 * amount;
-    legs[1].rotation.x = -Math.sin(t * 9) * 0.7 * amount;
+    const swing = Math.sin(t * 8.5) * amount;
+    legs[0].rotation.x = swing * 0.62;
+    legs[1].rotation.x = -swing * 0.62;
+    arms[0].rotation.x = -swing * 0.38;
+    arms[1].rotation.x = swing * 0.38;
   };
   return g;
 }
 
+function roundedBox(w: number, h: number, d: number, radius: number, material: THREE.Material, x = 0, y = 0, z = 0) {
+  const shape = new THREE.Shape();
+  const left = -w / 2, bottom = -h / 2;
+  shape.moveTo(left + radius, bottom);
+  shape.lineTo(left + w - radius, bottom); shape.quadraticCurveTo(left + w, bottom, left + w, bottom + radius);
+  shape.lineTo(left + w, bottom + h - radius); shape.quadraticCurveTo(left + w, bottom + h, left + w - radius, bottom + h);
+  shape.lineTo(left + radius, bottom + h); shape.quadraticCurveTo(left, bottom + h, left, bottom + h - radius);
+  shape.lineTo(left, bottom + radius); shape.quadraticCurveTo(left, bottom, left + radius, bottom);
+  const geometry = new THREE.ExtrudeGeometry(shape, { depth: d, bevelEnabled: true, bevelThickness: radius * .32, bevelSize: radius * .32, bevelSegments: 2, curveSegments: 8 });
+  geometry.translate(0, 0, -d / 2);
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(x, y, z); mesh.castShadow = true; mesh.receiveShadow = true;
+  return mesh;
+}
+
 function van(color: number, length = 5, beacon?: THREE.MeshStandardMaterial) {
   const g = new THREE.Group();
-  const paint = mat(color, 0.35, 0.3);
-  g.add(box(2, 1.9, length, paint, 0, 1.45, 0.3));
-  g.add(box(1.8, 0.8, 0.06, GLASS, 0, 1.9, -length / 2 + 0.2)); // windscreen
-  g.add(box(2.02, 0.3, length * 0.98, mat(0x1f2937), 0, 0.55, 0.3));
-  for (const x of [-0.95, 0.95]) for (const z of [-length / 2 + 0.9, length / 2 - 0.5]) g.add(wheel(0.38, 0.26, x, z));
-  if (beacon) g.add(box(0.5, 0.18, 0.3, beacon, 0, 2.5, 0));
+  const paint = new THREE.MeshPhysicalMaterial({ color, roughness: .28, metalness: .24, clearcoat: .8, clearcoatRoughness: .18 });
+  const trim = mat(0x202a35, .72);
+  const lamp = new THREE.MeshStandardMaterial({ color: 0xfff5d6, emissive: 0xffe9a8, emissiveIntensity: .35, roughness: .18 });
+  const red = new THREE.MeshStandardMaterial({ color: 0xb91c1c, emissive: 0xef4444, emissiveIntensity: .22 });
+  g.add(roundedBox(2.02, 1.72, length, .16, paint, 0, 1.38, .24));
+  g.add(roundedBox(1.78, .76, .055, .08, GLASS, 0, 1.78, -length / 2 + .19));
+  g.add(roundedBox(1.78, .72, .055, .08, GLASS, 0, 1.78, length / 2 - .16));
+  g.add(roundedBox(2.04, .24, length * .98, .06, trim, 0, .52, .24));
+  g.add(roundedBox(.82, .15, .05, .04, trim, 0, .78, -length / 2 - .025));
+  g.add(roundedBox(.92, .1, .045, .035, mat(0xe5e7eb, .5), 0, .79, -length / 2 - .055));
+  for (const side of [-1, 1]) {
+    g.add(roundedBox(.045, .48, .012, .018, trim, side, 1.3, .15));
+    g.add(roundedBox(.045, .48, .012, .018, trim, side, 1.3, 1.15));
+    g.add(roundedBox(.09, .28, .05, .025, lamp, side * .88, 1.12, -length / 2 - .035));
+    g.add(roundedBox(.09, .28, .05, .025, red, side * .88, 1.12, length / 2 + .035));
+    for (const z of [-length / 2 + .85, length / 2 - .65]) {
+      const tyre = wheel(.36, .25, side * .98, z); g.add(tyre);
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(.17, .17, .27, 16), mat(0x9ca3af, .35, .8));
+      hub.rotation.z = Math.PI / 2; hub.position.set(side * 1.01, .36, z); g.add(hub);
+    }
+  }
+  if (beacon) {
+    g.add(roundedBox(.5, .12, .28, .04, trim, 0, 2.28, .2));
+    g.add(roundedBox(.42, .12, .22, .04, beacon, 0, 2.38, .2));
+  }
   return g;
 }
 
@@ -150,6 +206,15 @@ export function createHazardScene(canvas: HTMLCanvasElement, sc: HazardScenario)
   const dm = new THREE.Matrix4();
   for (let i = 0; i < 90; i++) dashes.setMatrixAt(i, dm.makeTranslation(0, 0.012, 30 - i * 8));
   scene.add(dashes);
+  for (const edgeX of [-3.28, 3.28]) {
+    const edge = new THREE.Mesh(new THREE.BoxGeometry(.075, .014, 700), mat(0xf8fafc, .45));
+    edge.position.set(edgeX, .014, -250); scene.add(edge);
+  }
+  const studMat = mat(0xe5e7eb, .25, .15);
+  for (let i = 0; i < 70; i++) for (const x of [-3.12, 3.12]) {
+    const stud = new THREE.Mesh(new THREE.BoxGeometry(.08, .025, .12), studMat);
+    stud.position.set(x, .025, 24 - i * 10); scene.add(stud);
+  }
 
   // ---- roadside: houses (town) or hedgerows (country), trees, lamps
   const brick = ['#9b4a3c', '#b4694e', '#8a7a68'].map((c) => {
@@ -205,6 +270,11 @@ export function createHazardScene(canvas: HTMLCanvasElement, sc: HazardScenario)
         h.position.set(s * 13, 0, z);
         scene.add(h);
         if (i % 2 === 0) treeAt(s * 5.9, z + 6, 0.8);
+        if (i % 7 === 2) {
+          const post = new THREE.Mesh(new THREE.CylinderGeometry(.045, .055, 2.25, 10), mat(0x64748b, .7));
+          post.position.set(s * 5.7, 1.12, z - 2); scene.add(post);
+          scene.add(roundedBox(.72, .52, .07, .045, mat(i % 2 ? 0x1769aa : 0x16845d, .5), s * 5.7, 2.35, z - 2));
+        }
         if (theme !== 'suburban' && i % 3 === 0) {
           const lamp = box(0.12, 6, 0.12, mat(0x475569), s * 5.7, 3, z - 4);
           lamp.add(box(0.9, 0.12, 0.3, glowWin, -s * 0.5, 3, 0));
