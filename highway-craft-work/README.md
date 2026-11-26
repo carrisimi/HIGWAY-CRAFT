@@ -45,6 +45,15 @@ See `.env.example` for the full template. Never commit real server secrets. Rest
 
 The Git-connected Vercel project builds the Vite frontend and deploys `api/[...path].ts` as a Node.js Function. This function hosts the Express JSON API and the `/api/live` Gemini Live WebSocket endpoint. Enable Fluid Compute for WebSocket support. Set `GEMINI_API_KEY` as an encrypted server environment variable; do not use a `VITE_` prefix for server secrets. Set `VITE_GOOGLE_MAPS_API_KEY` only if the maps feature is enabled. Redeploy after changing environment variables.
 
+## First-deployment setup checklist
+
+1. In Vercel → Project Settings → Environment Variables, add `GEMINI_API_KEY` for Production (and Preview if you use it). Create the key in Google AI Studio and keep it server-side; never name it `VITE_GEMINI_API_KEY`.
+2. If you enable the test-centre map, add `VITE_GOOGLE_MAPS_API_KEY`. Restrict the browser key to your deployed site as an HTTP referrer and enable only the Google Maps APIs the app uses.
+3. In Firebase Authentication, enable Google sign-in and add `highway-craft-uk.vercel.app` to Authorized domains. Publish the repository's `firestore.rules` to the configured Firestore database so each learner can read and write only their own profile and attempts.
+4. Redeploy after changing environment variables. The `/api/health` endpoint reports whether Gemini and Maps keys are present without revealing their values.
+
+The Vercel project is configured for the London `lhr1` function region and Fluid Compute. Live voice still needs a valid Gemini API key before it can establish a session.
+
 ## Official UK learning references
 
 - [Car theory test: pass marks and results](https://www.gov.uk/theory-test/pass-mark-and-result)
