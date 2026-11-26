@@ -16,6 +16,7 @@ export function HazardPerceptionStudio({ onRecordScore }: HazardPerceptionStudio
   const [clicks, setClicks] = useState<number[]>([]);
   const [driveMode, setDriveMode] = useState(false);
   const [clipResults, setClipResults] = useState<Record<string, HazardScoreResult>>({});
+  const lastUiTickRef = useRef(0);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animRef = useRef<number>(0);
@@ -114,7 +115,10 @@ export function HazardPerceptionStudio({ onRecordScore }: HazardPerceptionStudio
     startTimeRef.current = performance.now();
     const tick = () => {
       const tSec = (performance.now() - startTimeRef.current) / 1000;
-      setElapsedSec(tSec);
+      if (tSec - lastUiTickRef.current >= 0.2) {
+        lastUiTickRef.current = tSec;
+        setElapsedSec(tSec);
+      }
       renderScene(tSec);
       if (tSec >= scenario.durationSec) {
         finishClip(clicksRef.current, scenario);
@@ -202,13 +206,14 @@ export function HazardPerceptionStudio({ onRecordScore }: HazardPerceptionStudio
             <button
               key={sc.id}
               type="button"
+              disabled={status === "playing"}
               onClick={() => {
                 cancelAnimationFrame(animRef.current);
                 setSelectedId(sc.id);
                 setStatus('ready');
                 setClicks([]);
               }}
-              className={`px-3.5 py-2 text-xs font-medium rounded-lg border transition-colors whitespace-nowrap flex items-center gap-2 ${
+              className={`px-3.5 py-2 text-xs font-medium rounded-lg border transition-colors whitespace-nowrap flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
                 isCurrent
                   ? 'bg-[#0B4F8A] text-white border-[#0B4F8A]'
                   : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
@@ -257,6 +262,7 @@ export function HazardPerceptionStudio({ onRecordScore }: HazardPerceptionStudio
             height={640}
             onClick={registerHazardClick}
             data-testid="hazard-canvas"
+            aria-label={`Interactive hazard perception road scene: ${scenario.title}. Click when the hazard begins to develop.`}
             className="w-full h-auto block cursor-crosshair select-none"
           />
 
