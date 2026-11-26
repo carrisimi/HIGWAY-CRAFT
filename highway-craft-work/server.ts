@@ -622,7 +622,7 @@ export async function createHighwayCraftServer(
       ? forwarded.split(',').pop()
       : request.socket.remoteAddress || 'unknown')?.trim() || 'unknown';
     if ((liveConnectionsByIp.get(ip) || 0) >= 2) {
-      socket.write('HTTP/1.1 429 Too Many Requests\\r\\nConnection: close\\r\\n\\r\\n');
+      socket.write('HTTP/1.1 429 Too Many Requests\r\nConnection: close\r\n\r\n');
       socket.destroy();
       return;
     }
