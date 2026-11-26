@@ -117,6 +117,25 @@ function clampString(val: string | null | undefined, maxLen: number, fallback: s
   return clean.slice(0, maxLen);
 }
 
+export async function getUserProgressFromFirestore(user: User): Promise<CloudProgressSnapshot | null> {
+  try {
+    const snapshot = await getDoc(doc(db, 'users', user.uid));
+    if (!snapshot.exists()) return null;
+    const data = snapshot.data();
+    return {
+      theoryBestPercent: typeof data.theoryBestPercent === 'number' ? data.theoryBestPercent : null,
+      theoryPassed: Boolean(data.theoryPassed),
+      hazardBestScore: typeof data.hazardBestScore === 'number' ? data.hazardBestScore : null,
+      hazardMaxScore: typeof data.hazardMaxScore === 'number' ? data.hazardMaxScore : 50,
+      practicalPasses: typeof data.practicalPasses === 'number' ? data.practicalPasses : 0,
+      practicalRuns: typeof data.practicalRuns === 'number' ? data.practicalRuns : 0,
+    };
+  } catch (err) {
+    console.warn('Could not restore cloud learner progress:', err);
+    return null;
+  }
+}
+
 export async function syncUserProfileToFirestore(
   user: User,
   progress: CloudProgressSnapshot
