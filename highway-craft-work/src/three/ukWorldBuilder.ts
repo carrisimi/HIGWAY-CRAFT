@@ -114,6 +114,25 @@ export function buildUkDrivingWorld(
   roundaboutApron.receiveShadow = true;
   scene.add(roundaboutApron);
 
+  // Two clearly separated circulating lanes: inner and outer.
+  // Dashed white lane divider follows the full circumference of the ring.
+  const roundaboutLaneDashMat = new THREE.MeshStandardMaterial({
+    color: 0xf8fafc,
+    roughness: 0.52,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
+  });
+  const roundaboutLaneDashGeo = new THREE.BoxGeometry(0.12, 0.025, 0.72);
+  const roundaboutLaneDashes = new THREE.Group();
+  for (let angle = 0; angle < Math.PI * 2; angle += 0.22) {
+    const dash = new THREE.Mesh(roundaboutLaneDashGeo, roundaboutLaneDashMat);
+    dash.position.set(Math.cos(angle) * 10, 0.065, Math.sin(angle) * 10);
+    dash.rotation.y = -angle;
+    roundaboutLaneDashes.add(dash);
+  }
+  scene.add(roundaboutLaneDashes);
+
   // Roundabout central grass & brick island
   const kerbMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.8 });
   const islandKerb = new THREE.Mesh(new THREE.CylinderGeometry(6.2, 6.4, 0.24, 36), kerbMat);
@@ -768,9 +787,11 @@ export function buildUkDrivingWorld(
   const aiCars: AiCarEntity[] = [
     {
       rig: aiCarRig,
-      angle: Math.PI * 0.8,
-      radius: 9.8,
-      speedRad: -0.62, // Clockwise around roundabout in UK!
+      // Start on the approach driver's right, circulating in the outer lane.
+      angle: Math.PI * 0.35,
+      radius: 11.8,
+      // Positive angle is clockwise when viewed from above in this X/Z world.
+      speedRad: 0.42,
     },
   ];
 
