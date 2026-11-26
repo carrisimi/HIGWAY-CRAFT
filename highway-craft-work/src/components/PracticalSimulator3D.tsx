@@ -718,7 +718,8 @@ export function PracticalSimulator3D({
         const ax = Math.cos(ai.angle) * ai.radius;
         const az = Math.sin(ai.angle) * ai.radius;
         ai.rig.group.position.set(ax, 0, az);
-        ai.rig.group.rotation.y = -ai.angle;
+        // Car nose follows the clockwise tangent around the island.
+        ai.rig.group.rotation.y = Math.PI - ai.angle;
         ai.rig.updateWheels(0.15, (gState === 'title' ? idleTimeSec : simT) * 10);
       }
 
@@ -855,7 +856,7 @@ export function PracticalSimulator3D({
             examinerPrompt = 'Approaching roundabout: give way to traffic coming from your right, take 2nd exit straight ahead.';
           } else if (updatedCar.z <= 13.5 && updatedCar.z > -15) {
             activeStepIndex = 1;
-            examinerPrompt = 'Navigate smoothly around the left side of the roundabout and exit north.';
+            examinerPrompt = 'Keep the central island on your RIGHT. Stay in the LEFT lane for the 2nd exit straight ahead; follow the clockwise flow, then signal LEFT to leave.';
           } else if (updatedCar.z <= -15 && updatedCar.z > -28) {
             activeStepIndex = 2;
             examinerPrompt =
