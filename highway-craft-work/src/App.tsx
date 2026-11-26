@@ -56,11 +56,20 @@ export default function App() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as ProgressState;
-        return {
-          ...parsed,
-          hazardMaxScore: Math.max(parsed.hazardMaxScore || 50, 50),
-        };
+        const parsed: unknown = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          const saved = parsed as Partial<ProgressState>;
+          const finiteOr = (value: unknown, fallback: number) =>
+            typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : fallback;
+          return {
+            theoryBestPercent: typeof saved.theoryBestPercent === 'number' && Number.isFinite(saved.theoryBestPercent) ? Math.min(100, Math.max(0, saved.theoryBestPercent)) : null,
+            theoryPassed: saved.theoryPassed === true,
+            hazardBestScore: typeof saved.hazardBestScore === 'number' && Number.isFinite(saved.hazardBestScore) ? Math.max(0, saved.hazardBestScore) : null,
+            hazardMaxScore: Math.max(50, finiteOr(saved.hazardMaxScore, 50)),
+            practicalPasses: finiteOr(saved.practicalPasses, 0),
+            practicalRuns: finiteOr(saved.practicalRuns, 0),
+          };
+        }
       }
     } catch {
       // ignore storage failure
@@ -244,7 +253,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-[#0F172A]">
+    <div className="hc-app-shell min-h-screen flex flex-col text-[#0F172A]">
       {mapsQuotaExceeded && (
         <div className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-2.5 text-xs md:text-sm text-center sticky top-0 z-50 shadow-sm">
           <span>
@@ -263,20 +272,20 @@ export default function App() {
       )}
 
       {/* Strict 3-Zone Top Bar Contract */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-6">
+      <header className="hc-app-header sticky top-0 z-30">
+        <div className="hc-header-inner mx-auto max-w-[1440px] px-4 sm:px-7 lg:px-10">
           <a
             href="#overview"
             onClick={(e) => {
               e.preventDefault();
               setSection('overview');
             }}
-            className="font-display text-lg font-bold tracking-tight text-slate-900 whitespace-nowrap shrink-0"
+            className="hc-brand whitespace-nowrap shrink-0"
           >
             Highway Craft UK
           </a>
 
-          <nav aria-label="Primary sections" className="hidden lg:flex items-center gap-6 text-sm font-medium">
+          <nav aria-label="Primary sections" className="hc-main-nav hidden lg:flex items-center gap-1 text-sm font-medium">
             {(
               [
                 ['overview', 'Overview'],
@@ -293,7 +302,7 @@ export default function App() {
                   key={key}
                   type="button"
                   onClick={() => setSection(key)}
-                  className={`py-1 border-b-2 transition-colors whitespace-nowrap shrink-0 ${
+                  className={`hc-nav-button whitespace-nowrap shrink-0 ${
                     active
                       ? 'border-[#58cc02] text-[#46a302] font-extrabold'
                       : 'border-transparent text-slate-600 hover:text-slate-900'
@@ -308,7 +317,7 @@ export default function App() {
           <div className="flex items-center gap-2.5 shrink-0">
             {!authLoading &&
               (user ? (
-                <div className="flex items-center gap-2 bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5">
+                <div className="hc-account-pill flex items-center gap-2">
                   <span className="text-xs font-semibold text-slate-800 max-w-[110px] truncate">
                     {user.displayName || user.email || 'Learner'}
                   </span>
@@ -326,7 +335,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => void handleGoogleSignIn()}
-                  className="px-3 py-2 text-xs font-semibold border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 rounded-lg transition-colors inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
+                  className="hc-signin-button px-3 py-2 text-xs font-semibold inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
                 >
                   <LogIn className="w-3.5 h-3.5 text-[#0B4F8A]" />
                   Sign in
@@ -337,7 +346,7 @@ export default function App() {
               type="button"
               data-start="true"
               onClick={() => launchPractical('mock-route')}
-              className="px-4 py-2 text-xs sm:text-sm font-semibold bg-[#0B4F8A] hover:bg-[#093E6E] text-white rounded-lg transition-colors whitespace-nowrap shrink-0"
+              className="hc-launch-button px-4 py-2 text-xs sm:text-sm font-semibold whitespace-nowrap shrink-0"
             >
               Launch 3D Drive
             </button>
@@ -345,7 +354,7 @@ export default function App() {
         </div>
 
         {/* Mobile / tablet navigation row */}
-        <div className="lg:hidden border-t border-slate-100 px-4 py-2 flex items-center gap-2.5 overflow-x-auto text-xs font-medium">
+        <div className="hc-mobile-nav lg:hidden px-4 py-2 flex items-center gap-2.5 overflow-x-auto text-xs font-medium">
           {(
             [
               ['overview', 'Overview'],
@@ -360,8 +369,8 @@ export default function App() {
               key={key}
               type="button"
               onClick={() => setSection(key)}
-              className={`px-3 py-1.5 rounded-md whitespace-nowrap shrink-0 ${
-                section === key ? 'bg-[#0B4F8A] text-white' : 'text-slate-600 bg-slate-100'
+              className={`hc-mobile-nav-button px-3 py-1.5 whitespace-nowrap shrink-0 ${
+                section === key ? 'is-active' : ''
               }`}
             >
               {label}
