@@ -77,7 +77,7 @@ function van(color: number, length = 5, beacon?: THREE.MeshStandardMaterial) {
 export function createHazardScene(canvas: HTMLCanvasElement, sc: HazardScenario): HazardScene {
   const W = 1280;
   const H = 640;
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'low-power', alpha: false });
   renderer.setPixelRatio(1);
   renderer.setSize(W, H, false);
   renderer.shadowMap.enabled = true;
@@ -97,7 +97,7 @@ export function createHazardScene(canvas: HTMLCanvasElement, sc: HazardScenario)
   scene.add(new THREE.HemisphereLight(0xffffff, 0x6b8f4e, rain ? 0.9 : 1.15));
   const sun = new THREE.DirectionalLight(0xfff1d6, rain ? 0.7 : 2.4);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.mapSize.set(1024, 1024);
   Object.assign(sun.shadow.camera, { left: -35, right: 35, top: 35, bottom: -35, near: 1, far: 140 });
   scene.add(sun, sun.target);
 
@@ -465,10 +465,21 @@ export function createHazardScene(canvas: HTMLCanvasElement, sc: HazardScenario)
     setControls: (c) => Object.assign(ctl, c),
     getSpeedMph: () => Math.round(curSpeed / 0.447 / 0.8),
     dispose: () => {
+      const geometries = new Set<THREE.BufferGeometry>();
+      const materials = new Set<THREE.Material>();
+      const textures = new Set<THREE.Texture>();
       scene.traverse((o) => {
         const m = o as THREE.Mesh;
-        m.geometry?.dispose?.();
+        if (m.geometry) geometries.add(m.geometry);
+        const list = Array.isArray(m.material) ? m.material : m.material ? [m.material] : [];
+        for (const material of list) {
+          materials.add(material);
+          for (const value of Object.values(material)) if (value instanceof THREE.Texture) textures.add(value);
+        }
       });
+      geometries.forEach((geometry) => geometry.dispose());
+      textures.forEach((texture) => texture.dispose());
+      materials.forEach((material) => material.dispose());
       renderer.dispose();
       renderer.forceContextLoss();
     },
