@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { HomeJourney } from './components/HomeJourney';
-import { onAuthStateChanged, type User } from 'firebase/auth';
+import type { User } from 'firebase/auth';
 import {
   Car,
   CheckCircle2,
@@ -17,14 +17,6 @@ const AiInstructorStudio = lazy(() => import('./components/AiInstructorStudio').
 const PracticalSimulator3D = lazy(() => import('./components/PracticalSimulator3D').then((m) => ({ default: m.PracticalSimulator3D })));
 import { UkRoadSign } from './components/UkRoadSign';
 import type { ManoeuvreScoreBreakdown } from './logic/practicalEngine';
-import {
-  auth,
-  recordAttemptInFirestore,
-  signInWithGoogle,
-  signOutGoogle,
-  syncUserProfileToFirestore,
-  testFirestoreConnection,
-} from './lib/firebase';
 
 type ActiveSection = 'overview' | 'theory' | 'hazard' | 'smtm' | 'maps' | 'ai' | 'practical';
 
@@ -113,36 +105,47 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    void testFirestoreConnection();
+    let cancelled = false;
+    let unsubscribe: (() => void) | undefined;
 
-    const unsub = onAuthStateChanged(auth, async (nextUser) => {
-      setUser(nextUser);
-      setAuthLoading(false);
-      if (!nextUser) return;
+    void Promise.all([import('./lib/firebase'), import('firebase/auth')]).then(
+      ([firebase, authSdk]) => {
+        if (cancelled) return;
+        void firebase.testFirestoreConnection();
+        unsubscribe = authSdk.onAuthStateChanged(firebase.auth, async (nextUser) => {
+          setUser(nextUser);
+          setAuthLoading(false);
+          if (!nextUser) return;
 
-      try {
-        const token = await nextUser.getIdToken();
-        const res = await fetch('/api/progress/summary', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const payload = (await res.json()) as { summary?: Partial<ProgressState> };
-          if (payload.summary) {
-            mergeCloudSummary(payload.summary);
+          try {
+            const token = await nextUser.getIdToken();
+            const res = await fetch('/api/progress/summary', {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.ok) {
+              const payload = (await res.json()) as { summary?: Partial<ProgressState> };
+              if (payload.summary) mergeCloudSummary(payload.summary);
+            }
+          } catch {
+            // Keep local progress available when the API is offline.
           }
-        }
-      } catch {
-        // fallback gracefully to local progress if offline
-      }
 
-      try {
-        await syncUserProfileToFirestore(nextUser, progress);
-      } catch (err) {
-        console.error('Firestore profile sync skipped:', err);
+          try {
+            await firebase.syncUserProfileToFirestore(nextUser, progress);
+          } catch (err) {
+            console.error('Firestore profile sync skipped:', err);
+          }
+        });
       }
+    ).catch((err) => {
+      console.warn('Cloud sign-in services could not be loaded; local practice remains available.', err);
+      if (!cancelled) setAuthLoading(false);
     });
 
-    return () => unsub();
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mergeCloudSummary]);
 
@@ -162,7 +165,8 @@ export default function App() {
       },
       nextProgress: ProgressState
     ) => {
-      const current = auth.currentUser;
+      const firebase = await import('./lib/firebase');
+      const current = firebase.auth.currentUser;
       if (!current) return;
 
       try {
@@ -185,8 +189,8 @@ export default function App() {
 
       try {
         await Promise.all([
-          recordAttemptInFirestore(current, attempt),
-          syncUserProfileToFirestore(current, nextProgress),
+          firebase.recordAttemptInFirestore(current, attempt),
+          firebase.syncUserProfileToFirestore(current, nextProgress),
         ]);
       } catch (err) {
         console.error('Firestore attempt sync error:', err);
@@ -198,7 +202,8 @@ export default function App() {
   const handleGoogleSignIn = async () => {
     setAuthError(null);
     try {
-      await signInWithGoogle();
+      const firebase = await import('./lib/firebase');
+      await firebase.signInWithGoogle();
     } catch {
       setAuthError('Sign-in was cancelled or blocked by popup settings.');
     }
@@ -314,7 +319,7 @@ export default function App() {
                   </span>
                   <button
                     type="button"
-                    onClick={() => void signOutGoogle()}
+                    onClick={() => void import('./lib/firebase').then((firebase) => firebase.signOutGoogle())}
                     aria-label="Sign out"
                     title="Sign out"
                     className="text-slate-500 hover:text-slate-900 transition-colors"
