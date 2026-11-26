@@ -119,34 +119,34 @@ export default function App() {
           setAuthLoading(false);
           if (!nextUser) return;
 
-          const cloudProgress = await firebase.getUserProgressFromFirestore(nextUser);
-          const local = progressRef.current;
-          const restored: ProgressState = cloudProgress
-            ? {
-                theoryBestPercent:
-                  cloudProgress.theoryBestPercent === null
-                    ? local.theoryBestPercent
-                    : local.theoryBestPercent === null
-                      ? cloudProgress.theoryBestPercent
-                      : Math.max(local.theoryBestPercent, cloudProgress.theoryBestPercent),
-                theoryPassed: local.theoryPassed || cloudProgress.theoryPassed,
-                hazardBestScore:
-                  cloudProgress.hazardBestScore === null
-                    ? local.hazardBestScore
-                    : local.hazardBestScore === null
-                      ? cloudProgress.hazardBestScore
-                      : Math.max(local.hazardBestScore, cloudProgress.hazardBestScore),
-                hazardMaxScore: Math.max(local.hazardMaxScore, cloudProgress.hazardMaxScore),
-                practicalPasses: Math.max(local.practicalPasses, cloudProgress.practicalPasses),
-                practicalRuns: Math.max(local.practicalRuns, cloudProgress.practicalRuns),
-              }
-            : local;
-          setProgress(restored);
           try {
-            // Merge browser progress with the saved cloud profile instead of overwriting either.
+            const cloudProgress = await firebase.getUserProgressFromFirestore(nextUser);
+            const local = progressRef.current;
+            const restored: ProgressState = cloudProgress
+              ? {
+                  theoryBestPercent:
+                    cloudProgress.theoryBestPercent === null
+                      ? local.theoryBestPercent
+                      : local.theoryBestPercent === null
+                        ? cloudProgress.theoryBestPercent
+                        : Math.max(local.theoryBestPercent, cloudProgress.theoryBestPercent),
+                  theoryPassed: local.theoryPassed || cloudProgress.theoryPassed,
+                  hazardBestScore:
+                    cloudProgress.hazardBestScore === null
+                      ? local.hazardBestScore
+                      : local.hazardBestScore === null
+                        ? cloudProgress.hazardBestScore
+                        : Math.max(local.hazardBestScore, cloudProgress.hazardBestScore),
+                  hazardMaxScore: Math.max(local.hazardMaxScore, cloudProgress.hazardMaxScore),
+                  practicalPasses: Math.max(local.practicalPasses, cloudProgress.practicalPasses),
+                  practicalRuns: Math.max(local.practicalRuns, cloudProgress.practicalRuns),
+                }
+              : local;
+            setProgress(restored);
             await firebase.syncUserProfileToFirestore(nextUser, restored);
           } catch (err) {
-            console.error('Firestore profile sync skipped:', err);
+            // Preserve local progress when Firestore is offline or temporarily rejects a read.
+            console.warn('Cloud progress restore skipped; local progress remains available.', err);
           }
         });
       }
