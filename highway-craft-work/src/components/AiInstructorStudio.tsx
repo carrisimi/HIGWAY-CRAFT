@@ -394,7 +394,7 @@ export function AiInstructorStudio() {
     nextStartTimeRef.current = outputCtx.currentTime;
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(`${protocol}//${window.location.host}/live?mode=${voiceMode}`);
+    const ws = new WebSocket(`${protocol}//${window.location.host}/api/live?mode=${voiceMode}`);
     wsRef.current = ws;
 
     ws.onopen = () => {
