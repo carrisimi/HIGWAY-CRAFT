@@ -1,0 +1,10 @@
+{
+  "name": "Highway Craft UK \u2014 UK Driving Test Practice & 3D Simulator",
+  "description": "Independent UK learner-driver practice academy featuring Highway Code theory questions, original interactive 3D hazard-perception training, 3D vehicle safety checks, UK test-centre maps, an AI learning coach, and a left-hand-traffic practical driving simulator.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

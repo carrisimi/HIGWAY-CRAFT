@@ -1,0 +1,173 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated UK learner driver profile summary and aggregate readiness scores",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Authentication user UID",
+          "maxLength": 128
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Learner display name",
+          "maxLength": 100
+        },
+        "role": {
+          "type": "string",
+          "description": "User account role",
+          "enum": ["learner"]
+        },
+        "theoryBestPercent": {
+          "type": "number",
+          "description": "Best theory practice score percentage (0-100)"
+        },
+        "theoryPassed": {
+          "type": "boolean",
+          "description": "Whether learner achieved >= 86% DVSA pass mark"
+        },
+        "hazardBestScore": {
+          "type": "number",
+          "description": "Best hazard perception cumulative score"
+        },
+        "hazardMaxScore": {
+          "type": "number",
+          "description": "Maximum hazard perception score scale"
+        },
+        "practicalPasses": {
+          "type": "number",
+          "description": "Number of passed 3D practical runs"
+        },
+        "practicalRuns": {
+          "type": "number",
+          "description": "Total completed 3D practical runs"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server last update timestamp"
+        }
+      },
+      "required": [
+        "uid",
+        "displayName",
+        "role",
+        "theoryPassed",
+        "hazardMaxScore",
+        "practicalPasses",
+        "practicalRuns",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UserProgressAttempt": {
+      "title": "UserProgressAttempt",
+      "description": "Individual recorded theory, hazard perception, or 3D practical driving test attempt",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Owner Firebase UID",
+          "maxLength": 128
+        },
+        "mode": {
+          "type": "string",
+          "description": "Training module type",
+          "enum": ["theory", "hazard", "practical"]
+        },
+        "topicOrScenario": {
+          "type": "string",
+          "description": "Selected DVSA topic, clip set, or 3D manoeuvre ID",
+          "maxLength": 120
+        },
+        "score": {
+          "type": "number",
+          "description": "Achieved score"
+        },
+        "maxScore": {
+          "type": "number",
+          "description": "Maximum possible score"
+        },
+        "passed": {
+          "type": "boolean",
+          "description": "Pass or fail outcome"
+        },
+        "minorFaults": {
+          "type": "number",
+          "description": "Count of minor/driving faults"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Attempt creation server timestamp"
+        }
+      },
+      "required": [
+        "uid",
+        "mode",
+        "topicOrScenario",
+        "score",
+        "maxScore",
+        "passed",
+        "minorFaults",
+        "createdAt"
+      ]
+    },
+    "UserTopicMastery": {
+      "title": "UserTopicMastery",
+      "description": "Per-category theory test accuracy tracking for a learner",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Owner Firebase UID",
+          "maxLength": 128
+        },
+        "category": {
+          "type": "string",
+          "description": "DVSA theory topic name",
+          "maxLength": 80
+        },
+        "answeredCount": {
+          "type": "number",
+          "description": "Total questions answered in this category"
+        },
+        "correctCount": {
+          "type": "number",
+          "description": "Total questions answered correctly in this category"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest update"
+        }
+      },
+      "required": ["uid", "category", "answeredCount", "correctCount", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private learner driver profile and cumulative test scores (strictly owner-scoped, PII-isolated)"
+    },
+    "/users/{userId}/attempts/{attemptId}": {
+      "schema": { "$ref": "#/entities/UserProgressAttempt" },
+      "description": "History of theory, hazard, and 3D practical test runs owned by the learner"
+    },
+    "/users/{userId}/mastery/{topicId}": {
+      "schema": { "$ref": "#/entities/UserTopicMastery" },
+      "description": "Per-topic UK theory mastery counters owned by the learner"
+    },
+    "/test/{docId}": {
+      "schema": { "type": "object" },
+      "description": "Read-only connectivity probe document for SDK initialization check"
+    }
+  }
+}

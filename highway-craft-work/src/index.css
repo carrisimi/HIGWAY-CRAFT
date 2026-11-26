@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+/* Highway Craft UK: Duolingo-style design system for learner drivers */
+@layer base {
+  :root {
+    --font-display: 'Nunito', 'Outfit', system-ui, sans-serif;
+    --font-sans: 'Nunito', 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+    --road: #1f2a44;
+    --road-line: #ffc800;
+    --go: #58cc02;      --go-deep: #46a302;
+    --brake: #ff4b4b;   --brake-deep: #d33131;
+    --signal: #1cb0f6;  --signal-deep: #1899d6;
+    --amber: #ffb100;   --amber-deep: #d99700;
+    --ink: #3c3c3c;     --mute: #777;
+    --line: #e5e5e5;    --paper: #f7f9fc;
+  }
+  body {
+    font-family: var(--font-sans);
+    font-weight: 700;
+    background: var(--paper);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, .font-display { font-family: var(--font-display); font-weight: 900; letter-spacing: -0.01em; }
+  .font-mono, .tabular-nums { font-variant-numeric: tabular-nums; }
+}
+
+/* Chunky "press-down" buttons: every button gets a solid ledge that squashes on press */
+button {
+  border-radius: 16px;
+  font-weight: 800;
+  transition: transform .08s ease, box-shadow .08s ease, filter .15s ease;
+}
+button:not(:disabled):hover { filter: brightness(1.05); }
+button:not(:disabled):active { transform: translateY(3px); box-shadow: none !important; }
+button.bg-\[\#0B4F8A\], button.bg-blue-700, button.bg-blue-600 {
+  background: var(--signal) !important; box-shadow: 0 4px 0 var(--signal-deep); color: #fff;
+}
+button.bg-emerald-600, button.bg-emerald-500, button.bg-green-600 {
+  background: var(--go) !important; box-shadow: 0 4px 0 var(--go-deep);
+}
+button.bg-red-600, button.bg-red-700, button.bg-rose-600 {
+  background: var(--brake) !important; box-shadow: 0 4px 0 var(--brake-deep);
+}
+
+/* Softer, rounder cards with a bottom ledge */
+[class*="rounded-2xl"], [class*="rounded-3xl"] { border-radius: 24px !important; }
+section[class*="border"], div[class*="rounded-3xl"][class*="border"] {
+  border-width: 2px !important; border-color: var(--line) !important; box-shadow: 0 4px 0 var(--line);
+}
+header { backdrop-filter: blur(12px); border-bottom: 2px solid var(--line); }
+
+/* Reusable pieces for new UI */
+.duo-btn { display:inline-flex; align-items:center; gap:.5rem; padding:.85rem 1.5rem; border-radius:16px;
+  font-weight:900; text-transform:uppercase; letter-spacing:.05em; color:#fff;
+  background:var(--go); box-shadow:0 5px 0 var(--go-deep); }
+.duo-btn.blue { background:var(--signal); box-shadow:0 5px 0 var(--signal-deep); }
+.duo-btn.red { background:var(--brake); box-shadow:0 5px 0 var(--brake-deep); }
+.duo-btn.ghost { background:#fff; color:var(--signal); border:2px solid var(--line); box-shadow:0 4px 0 var(--line); }
+.duo-card { background:#fff; border:2px solid var(--line); border-radius:24px; box-shadow:0 4px 0 var(--line); padding:1.25rem; }
+
+/* XP / progress bar styled as a road with a moving dashed centre line */
+.duo-progress { height:16px; border-radius:999px; background:var(--line); overflow:hidden; }
+.duo-progress > i { display:block; height:100%; border-radius:999px; background:var(--go);
+  box-shadow: inset 0 4px 0 rgba(255,255,255,.3); transition: width .5s cubic-bezier(.3,1.4,.5,1); }
+
+/* Driving-flavoured micro-animations */
+@keyframes pop      { 0%{transform:scale(.6);opacity:0} 60%{transform:scale(1.12)} 100%{transform:scale(1);opacity:1} }
+@keyframes wiggle   { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-6deg)} 75%{transform:rotate(6deg)} }
+@keyframes cruise   { from{background-position:0 0} to{background-position:-80px 0} }
+@keyframes beacon   { 0%,100%{box-shadow:0 0 0 0 rgba(255,75,75,.6)} 50%{box-shadow:0 0 0 14px rgba(255,75,75,0)} }
+@keyframes blink    { 0%,49%{opacity:1} 50%,100%{opacity:.25} }
+.anim-shake { animation: shake .4s ease both; }
+.anim-slide-up { animation: slideUp .3s cubic-bezier(.2,1.2,.4,1) both; }
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-7px)} 40%{transform:translateX(7px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+@keyframes slideUp { from{transform:translateY(24px);opacity:0} to{transform:translateY(0);opacity:1} }
+.anim-pop { animation: pop .35s cubic-bezier(.3,1.5,.5,1) both; }
+.anim-wiggle { animation: wiggle .4s ease both; }
+.anim-beacon { animation: beacon 1.2s infinite; }
+.anim-indicator { animation: blink .8s steps(1) infinite; }
+/* Moving road strip: <div class="road-strip"/> as a divider or loader */
+.road-strip { height:10px; background: linear-gradient(90deg, var(--road-line) 50%, transparent 50%) 0 50%/40px 4px repeat-x, var(--road);
+  animation: cruise 1.2s linear infinite; border-radius: 6px; }
+
+.text-balance { text-wrap: balance; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

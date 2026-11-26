@@ -1,0 +1,218 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny across the entire database
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isAuthenticated() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isNonEmptyString(val, maxLen) {
+      return val is string && val.size() > 0 && val.size() <= maxLen;
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll([
+          'uid',
+          'displayName',
+          'role',
+          'theoryBestPercent',
+          'theoryPassed',
+          'hazardBestScore',
+          'hazardMaxScore',
+          'practicalPasses',
+          'practicalRuns',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid',
+          'displayName',
+          'role',
+          'theoryBestPercent',
+          'theoryPassed',
+          'hazardBestScore',
+          'hazardMaxScore',
+          'practicalPasses',
+          'practicalRuns',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.uid == userId
+        && data.uid is string
+        && data.uid.size() > 0
+        && data.uid.size() <= 128
+        && isNonEmptyString(data.displayName, 100)
+        && data.role == 'learner'
+        && data.theoryBestPercent is number
+        && data.theoryBestPercent >= 0
+        && data.theoryBestPercent <= 100
+        && data.theoryPassed is bool
+        && data.hazardBestScore is number
+        && data.hazardBestScore >= 0
+        && data.hazardBestScore <= 100
+        && data.hazardMaxScore is number
+        && data.hazardMaxScore >= 50
+        && data.hazardMaxScore <= 100
+        && data.practicalPasses is number
+        && data.practicalPasses >= 0
+        && data.practicalPasses <= 10000
+        && data.practicalRuns is number
+        && data.practicalRuns >= data.practicalPasses
+        && data.practicalRuns <= 10000
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidAttempt(data, userId) {
+      return data.keys().hasAll([
+          'uid',
+          'mode',
+          'topicOrScenario',
+          'score',
+          'maxScore',
+          'passed',
+          'minorFaults',
+          'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'uid',
+          'mode',
+          'topicOrScenario',
+          'score',
+          'maxScore',
+          'passed',
+          'minorFaults',
+          'createdAt'
+        ])
+        && data.uid == userId
+        && data.uid is string
+        && data.uid.size() <= 128
+        && data.mode in ['theory', 'hazard', 'practical']
+        && isNonEmptyString(data.topicOrScenario, 120)
+        && data.score is number
+        && data.score >= 0
+        && data.score <= 1000
+        && data.maxScore is number
+        && data.maxScore >= 1
+        && data.maxScore <= 1000
+        && data.passed is bool
+        && data.minorFaults is number
+        && data.minorFaults >= 0
+        && data.minorFaults <= 100
+        && data.createdAt is timestamp;
+    }
+
+    function isValidMastery(data, userId) {
+      return data.keys().hasAll([
+          'uid',
+          'category',
+          'answeredCount',
+          'correctCount',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid',
+          'category',
+          'answeredCount',
+          'correctCount',
+          'updatedAt'
+        ])
+        && data.uid == userId
+        && data.uid is string
+        && data.uid.size() <= 128
+        && isNonEmptyString(data.category, 80)
+        && data.answeredCount is number
+        && data.answeredCount >= 0
+        && data.answeredCount <= 50000
+        && data.correctCount is number
+        && data.correctCount >= 0
+        && data.correctCount <= data.answeredCount
+        && data.updatedAt is timestamp;
+    }
+
+    // Read-only SDK connectivity probe document
+    match /test/{docId} {
+      allow get: if docId == 'connection';
+      allow list, write: if false;
+    }
+
+    // Learner Profile & Nested Progress Subcollections (Strictly Owner-Scoped)
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+      allow create: if isOwner(userId)
+        && isValidId(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isOwner(userId)
+        && isValidId(userId)
+        && isValidUserProfile(incoming(), userId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'displayName',
+          'theoryBestPercent',
+          'theoryPassed',
+          'hazardBestScore',
+          'hazardMaxScore',
+          'practicalPasses',
+          'practicalRuns',
+          'updatedAt'
+        ])
+        && incoming().uid == existing().uid
+        && incoming().role == existing().role
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if false;
+
+      match /attempts/{attemptId} {
+        allow get, list: if isOwner(userId) && isValidId(attemptId);
+        allow create: if isOwner(userId)
+          && isValidId(attemptId)
+          && isValidAttempt(incoming(), userId)
+          && incoming().createdAt == request.time;
+        allow update, delete: if false;
+      }
+
+      match /mastery/{topicId} {
+        allow get, list: if isOwner(userId) && isValidId(topicId);
+        allow create: if isOwner(userId)
+          && isValidId(topicId)
+          && isValidMastery(incoming(), userId)
+          && incoming().updatedAt == request.time;
+        allow update: if isOwner(userId)
+          && isValidId(topicId)
+          && isValidMastery(incoming(), userId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'answeredCount',
+            'correctCount',
+            'updatedAt'
+          ])
+          && incoming().uid == existing().uid
+          && incoming().category == existing().category
+          && incoming().updatedAt == request.time;
+        allow delete: if false;
+      }
+    }
+  }
+}
