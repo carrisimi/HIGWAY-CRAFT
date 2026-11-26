@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { HomeJourney } from './components/HomeJourney';
 import type { User } from 'firebase/auth';
 import {
@@ -74,6 +74,8 @@ export default function App() {
       practicalRuns: 0,
     };
   });
+  const progressRef = useRef(progress);
+  progressRef.current = progress;
 
   useEffect(() => {
     try {
@@ -118,15 +120,33 @@ export default function App() {
           if (!nextUser) return;
 
           const cloudProgress = await firebase.getUserProgressFromFirestore(nextUser);
-          if (cloudProgress) {
-            mergeCloudSummary(cloudProgress);
-          } else {
-            // First sign-in: create the profile from this browser's existing local progress.
-            try {
-              await firebase.syncUserProfileToFirestore(nextUser, progress);
-            } catch (err) {
-              console.error('Firestore profile sync skipped:', err);
-            }
+          const local = progressRef.current;
+          const restored: ProgressState = cloudProgress
+            ? {
+                theoryBestPercent:
+                  cloudProgress.theoryBestPercent === null
+                    ? local.theoryBestPercent
+                    : local.theoryBestPercent === null
+                      ? cloudProgress.theoryBestPercent
+                      : Math.max(local.theoryBestPercent, cloudProgress.theoryBestPercent),
+                theoryPassed: local.theoryPassed || cloudProgress.theoryPassed,
+                hazardBestScore:
+                  cloudProgress.hazardBestScore === null
+                    ? local.hazardBestScore
+                    : local.hazardBestScore === null
+                      ? cloudProgress.hazardBestScore
+                      : Math.max(local.hazardBestScore, cloudProgress.hazardBestScore),
+                hazardMaxScore: Math.max(local.hazardMaxScore, cloudProgress.hazardMaxScore),
+                practicalPasses: Math.max(local.practicalPasses, cloudProgress.practicalPasses),
+                practicalRuns: Math.max(local.practicalRuns, cloudProgress.practicalRuns),
+              }
+            : local;
+          setProgress(restored);
+          try {
+            // Merge browser progress with the saved cloud profile instead of overwriting either.
+            await firebase.syncUserProfileToFirestore(nextUser, restored);
+          } catch (err) {
+            console.error('Firestore profile sync skipped:', err);
           }
         });
       }
