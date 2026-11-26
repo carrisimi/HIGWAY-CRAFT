@@ -353,9 +353,41 @@ export function createHazardScene(canvas: HTMLCanvasElement, sc: HazardScenario)
     };
   } else if (theme === 'blind-horse') {
     const horse = new THREE.Group();
-    const brown = mat(0x7c4a2d, 0.8);
-    horse.add(box(0.5, 0.8, 1.6, brown, 0, 1.4, 0), box(0.25, 0.9, 0.3, brown, 0, 1.9, -0.9), box(0.22, 0.25, 0.55, brown, 0, 2.3, -1.2));
-    for (const x of [-0.17, 0.17]) for (const z of [-0.6, 0.6]) horse.add(box(0.12, 1.1, 0.12, brown, x, 0.55, z));
+    const brown = mat(0x754326, 0.86);
+    const chestnut = mat(0x965b38, 0.82);
+    const mane = mat(0x211b18, 0.98);
+    const hoof = mat(0x24201d, 0.96);
+    const body = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 18), brown);
+    body.scale.set(.43, .48, .86); body.position.set(0, 1.38, .04); horse.add(body);
+    const chest = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 16), chestnut);
+    chest.scale.set(.36, .48, .42); chest.position.set(0, 1.34, -.58); horse.add(chest);
+    const neck = new THREE.Mesh(new THREE.CapsuleGeometry(.22, .62, 8, 14), chestnut);
+    neck.position.set(0, 1.92, -.82); neck.rotation.x = -.42; horse.add(neck);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(.25, 20, 16), chestnut);
+    head.scale.set(.78, 1.18, 1.3); head.position.set(0, 2.28, -1.18); horse.add(head);
+    const muzzle = new THREE.Mesh(new THREE.SphereGeometry(.15, 16, 12), mat(0x5d382b, .9));
+    muzzle.scale.set(1.05, .72, 1.25); muzzle.position.set(0, 2.17, -1.43); horse.add(muzzle);
+    for (const side of [-1, 1]) {
+      const ear = new THREE.Mesh(new THREE.ConeGeometry(.075, .28, 10), brown);
+      ear.position.set(side * .13, 2.55, -1.12); ear.rotation.z = side * -.18; horse.add(ear);
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(.035, 10, 8), mat(0x171717, .25));
+      eye.position.set(side * .19, 2.32, -1.27); horse.add(eye);
+      const frontLeg = new THREE.Mesh(new THREE.CapsuleGeometry(.09, .65, 6, 10), brown);
+      frontLeg.position.set(side * .22, .67, -.52); frontLeg.rotation.x = -.04; horse.add(frontLeg);
+      const backLeg = new THREE.Mesh(new THREE.CapsuleGeometry(.11, .63, 6, 10), brown);
+      backLeg.position.set(side * .24, .68, .55); horse.add(backLeg);
+      const frontHoof = new THREE.Mesh(new THREE.CylinderGeometry(.105, .12, .18, 12), hoof);
+      frontHoof.position.set(side * .22, .11, -.52); horse.add(frontHoof);
+      const backHoof = new THREE.Mesh(new THREE.CylinderGeometry(.12, .13, .18, 12), hoof);
+      backHoof.position.set(side * .24, .11, .55); horse.add(backHoof);
+    }
+    const maneGeo = new THREE.CapsuleGeometry(.12, .68, 6, 10);
+    const maneMesh = new THREE.Mesh(maneGeo, mane);
+    maneMesh.position.set(0, 2.27, -.82); maneMesh.rotation.x = -.55; horse.add(maneMesh);
+    const tail = new THREE.Mesh(new THREE.CapsuleGeometry(.075, .58, 6, 10), mane);
+    tail.position.set(0, 1.47, .9); tail.rotation.x = -.28; horse.add(tail);
+    const saddle = new THREE.Mesh(new THREE.BoxGeometry(.58, .12, .64), mat(0x2b211c, .8));
+    saddle.position.set(0, 1.84, .08); horse.add(saddle);
     const rider = person(0xfde047, 1.5);
     rider.position.set(0, 1.55, 0.1);
     horse.add(rider);
