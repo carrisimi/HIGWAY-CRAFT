@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { HomeJourney } from './components/HomeJourney';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import {
@@ -7,16 +7,14 @@ import {
   LogIn,
   LogOut,
 } from 'lucide-react';
-import { TheoryTestStudio } from './components/TheoryTestStudio';
-import { HazardPerceptionStudio } from './components/HazardPerceptionStudio';
-import { ShowMeTellMeStudio } from './components/ShowMeTellMeStudio';
-import { TestCentresMapStudio } from './components/TestCentresMapStudio';
-import { AiInstructorStudio } from './components/AiInstructorStudio';
-import {
-  PRACTICAL_SCENARIOS,
-  PracticalSimulator3D,
-  type PracticalScenarioId,
-} from './components/PracticalSimulator3D';
+import { PRACTICAL_SCENARIOS, type PracticalScenarioId } from './data/practicalScenarios';
+
+const TheoryTestStudio = lazy(() => import('./components/TheoryTestStudio').then((m) => ({ default: m.TheoryTestStudio })));
+const HazardPerceptionStudio = lazy(() => import('./components/HazardPerceptionStudio').then((m) => ({ default: m.HazardPerceptionStudio })));
+const ShowMeTellMeStudio = lazy(() => import('./components/ShowMeTellMeStudio').then((m) => ({ default: m.ShowMeTellMeStudio })));
+const TestCentresMapStudio = lazy(() => import('./components/TestCentresMapStudio').then((m) => ({ default: m.TestCentresMapStudio })));
+const AiInstructorStudio = lazy(() => import('./components/AiInstructorStudio').then((m) => ({ default: m.AiInstructorStudio })));
+const PracticalSimulator3D = lazy(() => import('./components/PracticalSimulator3D').then((m) => ({ default: m.PracticalSimulator3D })));
 import { UkRoadSign } from './components/UkRoadSign';
 import type { ManoeuvreScoreBreakdown } from './logic/practicalEngine';
 import {
@@ -213,6 +211,7 @@ export default function App() {
 
   if (section === 'practical') {
     return (
+      <Suspense fallback={<div className="min-h-screen grid place-items-center bg-slate-950 text-white"><div className="text-center"><div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-white/25 border-t-emerald-400" /><p className="text-sm text-slate-300">Preparing the 3D driving simulator…</p></div></div>}>
       <PracticalSimulator3D
         initialScenarioId={practicalScenario}
         onExitToAcademy={() => setSection('overview')}
@@ -240,6 +239,7 @@ export default function App() {
           );
         }}
       />
+      </Suspense>
     );
   }
 
@@ -386,6 +386,7 @@ export default function App() {
           />
         )}
 
+        <Suspense fallback={<div className="mx-auto max-w-7xl px-6 py-16 text-center text-sm font-medium text-slate-500">Loading learning module…</div>}>
         {section === 'theory' && (
           <TheoryTestStudio
             onRecordScore={(percent, passed, correctCount, totalQuestions, topic) => {
@@ -441,6 +442,7 @@ export default function App() {
         {section === 'smtm' && <ShowMeTellMeStudio />}
         {section === 'maps' && <TestCentresMapStudio />}
         {section === 'ai' && <AiInstructorStudio />}
+        </Suspense>
       </main>
 
       <footer className="border-t border-slate-200 bg-white py-5 px-6 text-xs text-slate-500">
