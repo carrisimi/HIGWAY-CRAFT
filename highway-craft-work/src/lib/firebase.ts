@@ -132,7 +132,7 @@ export async function getUserProgressFromFirestore(user: User): Promise<CloudPro
     };
   } catch (err) {
     console.warn('Could not restore cloud learner progress:', err);
-    return null;
+    throw err;
   }
 }
 
