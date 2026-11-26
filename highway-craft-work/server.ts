@@ -174,6 +174,30 @@ export async function createHighwayCraftServer(
   const app = express();
   const standardJson = express.json({ limit: '64kb' });
   const audioJson = express.json({ limit: '12mb' });
+  const aiRateWindows = new Map<string, { count: number; resetAt: number }>();
+
+  // Best-effort per-instance protection against accidental/public AI key abuse.
+  app.use('/api/ai', (req, res, next) => {
+    const forwarded = req.headers['x-forwarded-for'];
+    const ip = (typeof forwarded === 'string' ? forwarded.split(',')[0] : req.ip || 'unknown').trim();
+    const now = Date.now();
+    const current = aiRateWindows.get(ip);
+    if (!current || current.resetAt <= now) {
+      aiRateWindows.set(ip, { count: 1, resetAt: now + 60_000 });
+    } else if (current.count >= 24) {
+      res.setHeader('Retry-After', String(Math.max(1, Math.ceil((current.resetAt - now) / 1000))));
+      res.status(429).json({ error: 'Too many AI requests. Please wait a minute and try again.' });
+      return;
+    } else {
+      current.count += 1;
+    }
+    if (aiRateWindows.size > 1000) {
+      for (const [key, value] of aiRateWindows) {
+        if (value.resetAt <= now) aiRateWindows.delete(key);
+      }
+    }
+    next();
+  });
 
   app.use((req, res, next) => {
     if (req.path === '/api/ai/transcribe') {
