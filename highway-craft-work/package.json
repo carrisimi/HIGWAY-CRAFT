@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test": "tsx --test src/logic/practicalEngine.test.ts src/logic/theoryEngine.test.ts"
+    "test": "tsx --test src/logic/practicalEngine.test.ts src/logic/theoryEngine.test.ts src/logic/server.test.ts"
   },
   "dependencies": {
     "@firebase/eslint-plugin-security-rules": "^0.0.2",
