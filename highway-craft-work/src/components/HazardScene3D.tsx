@@ -399,8 +399,25 @@ export function createHazardScene(canvas: HTMLCanvasElement, sc: HazardScenario)
     };
   } else if (theme === 'urban') {
     const bus = new THREE.Group();
-    bus.add(box(2.5, 3, 10.5, mat(0xdc2626, 0.4, 0.2), 0, 1.9, 0), box(2.52, 1, 10, GLASS, 0, 2.5, 0));
-    for (const z of [-3.5, 3.5]) for (const x of [-1.2, 1.2]) bus.add(wheel(0.5, 0.3, x, z));
+    const busRed = new THREE.MeshPhysicalMaterial({ color: 0xb91c2b, roughness: .3, metalness: .18, clearcoat: .7 });
+    const busTrim = mat(0x202a35, .72);
+    bus.add(roundedBox(2.48, 3.35, 10.5, .18, busRed, 0, 1.88, 0));
+    bus.add(roundedBox(1.9, .88, .06, GLASS, 0, 2.72, -5.28));
+    bus.add(roundedBox(1.9, .7, .06, GLASS, 0, 1.35, -5.28));
+    bus.add(roundedBox(2.5, .22, 10.35, .06, busTrim, 0, .42, 0));
+    for (const side of [-1, 1]) {
+      for (const z of [-3.7, -1.25, 1.25, 3.7]) {
+        bus.add(roundedBox(.035, .78, 1.72, .05, GLASS, side * 1.245, 2.72, z));
+        bus.add(roundedBox(.035, .68, 1.72, .05, GLASS, side * 1.245, 1.48, z));
+      }
+      bus.add(roundedBox(.06, .14, .62, .03, mat(0xfbbf24, .3), side * 1.25, .92, -4.8));
+      for (const z of [-3.5, 3.5]) {
+        const tyre = wheel(.5, .3, side * 1.15, z); bus.add(tyre);
+        const hub = new THREE.Mesh(new THREE.CylinderGeometry(.24, .24, .32, 18), mat(0x9ca3af, .35, .75));
+        hub.rotation.z = Math.PI / 2; hub.position.set(side * 1.17, .5, z); bus.add(hub);
+      }
+    }
+    bus.add(roundedBox(.55, .16, .05, .03, mat(0xf8fafc, .4), 0, .78, -5.32));
     place(bus, -2.6, hz - 3);
     const shelter = box(0.1, 2.4, 3, mat(0x94a3b8, 0.3, 0.5), -5.7, 1.2, hz + 5);
     scene.add(shelter);
