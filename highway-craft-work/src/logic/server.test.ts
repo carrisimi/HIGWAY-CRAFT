@@ -39,7 +39,7 @@ test('serverless API health and missing-key responses are safe', async () => {
     });
     assert.equal(ai.status, 503);
     const error = (await ai.json()) as { error?: string };
-    assert.match(error.error ?? '', /GEMINI_API_KEY/);
+    assert.match(error.error ?? '', /Gemini API key is not configured/);
   } finally {
     await new Promise<void>((resolve, reject) => {
       server.close((err) => (err ? reject(err) : resolve()));
