@@ -35,11 +35,15 @@ An independent UK learner-driver practice academy. The project combines a React 
    npm run build
    ```
 
-The app can run its learning and simulator features without signing in. Progress is saved in the browser; Google sign-in and cloud progress depend on correctly configured Firebase and server/database credentials.
+The app can run its learning and simulator features without signing in. Progress is saved locally and, after Google sign-in, synchronised to the user's own Firestore profile. The AI coach and live voice require `GEMINI_API_KEY`; maps require `VITE_GOOGLE_MAPS_API_KEY`.
 
 ## Environment variables
 
 See `.env.example` for the full template. Never commit real server secrets. Restrict browser API keys by HTTP referrer and enable only the Google Maps APIs the project uses.
+
+## Deploying on Vercel
+
+The Git-connected Vercel project builds the Vite frontend and deploys `api/[...path].ts` as a Node.js Function. This function hosts the Express JSON API and the `/api/live` Gemini Live WebSocket endpoint. Enable Fluid Compute for WebSocket support. Set `GEMINI_API_KEY` as an encrypted server environment variable; do not use a `VITE_` prefix for server secrets. Set `VITE_GOOGLE_MAPS_API_KEY` only if the maps feature is enabled. Redeploy after changing environment variables.
 
 ## Official UK learning references
 
