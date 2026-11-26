@@ -443,8 +443,8 @@ export function createHazardScene(canvas: HTMLCanvasElement, sc: HazardScenario)
     const busRed = new THREE.MeshPhysicalMaterial({ color: 0xb91c2b, roughness: .3, metalness: .18, clearcoat: .7 });
     const busTrim = mat(0x202a35, .72);
     bus.add(roundedBox(2.48, 3.35, 10.5, .18, busRed, 0, 1.88, 0));
-    bus.add(roundedBox(1.9, .88, .06, GLASS, 0, 2.72, -5.28));
-    bus.add(roundedBox(1.9, .7, .06, GLASS, 0, 1.35, -5.28));
+    bus.add(roundedBox(1.9, .88, .06, .08, GLASS, 0, 2.72, -5.28));
+    bus.add(roundedBox(1.9, .7, .06, .08, GLASS, 0, 1.35, -5.28));
     bus.add(roundedBox(2.5, .22, 10.35, .06, busTrim, 0, .42, 0));
     for (const side of [-1, 1]) {
       for (const z of [-3.7, -1.25, 1.25, 3.7]) {
