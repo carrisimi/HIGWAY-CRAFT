@@ -380,6 +380,7 @@ export default function App() {
         {section === 'overview' && (
           <HomeJourney
             progress={progress}
+            signedIn={Boolean(user)}
             scenarios={PRACTICAL_SCENARIOS}
             onNavigate={(s) => setSection(s)}
             onLaunch={(id) => launchPractical(id as PracticalScenarioId)}
