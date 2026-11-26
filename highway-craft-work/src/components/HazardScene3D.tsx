@@ -538,6 +538,7 @@ export function createHazardScene(canvas: HTMLCanvasElement, sc: HazardScenario)
       const geometries = new Set<THREE.BufferGeometry>();
       const materials = new Set<THREE.Material>();
       const textures = new Set<THREE.Texture>();
+      const sharedMaterials = new Set<THREE.Material>([SKIN, GLASS, TYRE]);
       scene.traverse((o) => {
         const m = o as THREE.Mesh;
         if (m.geometry) geometries.add(m.geometry);
@@ -549,7 +550,7 @@ export function createHazardScene(canvas: HTMLCanvasElement, sc: HazardScenario)
       });
       geometries.forEach((geometry) => geometry.dispose());
       textures.forEach((texture) => texture.dispose());
-      materials.forEach((material) => material.dispose());
+      materials.forEach((material) => { if (!sharedMaterials.has(material)) material.dispose(); });
       renderer.dispose();
       renderer.forceContextLoss();
     },
